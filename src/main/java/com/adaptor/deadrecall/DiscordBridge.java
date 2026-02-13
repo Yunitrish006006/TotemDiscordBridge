@@ -85,7 +85,12 @@ public class DiscordBridge {
                         escapeJson(message)
                 );
 
-                HttpURLConnection conn = (HttpURLConnection) new URL(workerUrl + "/api/mc/chat").openConnection();
+                String url = workerUrl + "/api/mc/chat";
+                Deadrecall.LOGGER.info("[DiscordBridge] 發送請求到: {}", url);
+                Deadrecall.LOGGER.info("[DiscordBridge] API Key: {}...", apiKey.substring(0, Math.min(10, apiKey.length())));
+                Deadrecall.LOGGER.info("[DiscordBridge] JSON 內容: {}", json);
+
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setRequestProperty("X-API-Key", apiKey);
@@ -96,15 +101,24 @@ public class DiscordBridge {
                 conn.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
 
                 int responseCode = conn.getResponseCode();
-                if (responseCode != 200) {
-                    InputStream errorStream = conn.getErrorStream();
-                    String errorBody = errorStream != null ? new String(errorStream.readAllBytes(), StandardCharsets.UTF_8) : "N/A";
-                    Deadrecall.LOGGER.warn("[DiscordBridge] 發送失敗 (HTTP {}): {}", responseCode, errorBody);
+
+                // 讀取回應內容
+                InputStream responseStream = (responseCode >= 200 && responseCode < 300)
+                    ? conn.getInputStream()
+                    : conn.getErrorStream();
+                String responseBody = responseStream != null
+                    ? new String(responseStream.readAllBytes(), StandardCharsets.UTF_8)
+                    : "N/A";
+
+                if (responseCode == 200) {
+                    Deadrecall.LOGGER.info("[DiscordBridge] 發送成功 (HTTP 200): {}", responseBody);
+                } else {
+                    Deadrecall.LOGGER.warn("[DiscordBridge] 發送失敗 (HTTP {}): {}", responseCode, responseBody);
                 }
 
                 conn.disconnect();
             } catch (Exception e) {
-                Deadrecall.LOGGER.warn("[DiscordBridge] 發送訊息失敗: {}", e.getMessage());
+                Deadrecall.LOGGER.error("[DiscordBridge] 發送訊息失敗: {}", e.getMessage(), e);
             }
         });
     }
