@@ -19,6 +19,21 @@ loom {
             sourceSet sourceSets.client
         }
     }
+
+    runs {
+        client {
+            client()
+            setConfigName("Minecraft Client")
+            ideConfigGenerated(true)
+            runDir("run")
+        }
+        server {
+            server()
+            setConfigName("Minecraft Server")
+            ideConfigGenerated(true)
+            runDir("run")
+        }
+    }
 }
 
 fabricApi {
@@ -42,9 +57,15 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Gson for JSON parsing (used in DiscordBridge)
+    // Use Minecraft's built-in Gson instead of bundling it
+    // This is simpler and avoids version conflicts
+    compileOnly 'com.google.code.gson:gson:2.10.1'
 }
 
 processResources {
+
     inputs.property "version", project.version
     inputs.property "minecraft_version", project.minecraft_version
     inputs.property "loader_version", project.loader_version
@@ -81,7 +102,7 @@ java {
 }
 
 jar {
-    from("LICENSE") {
+    from("LICENSE.txt") {
         rename { "${it}_${project.archives_base_name}" }
     }
 }

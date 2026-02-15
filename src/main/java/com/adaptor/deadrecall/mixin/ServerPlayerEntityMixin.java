@@ -1,6 +1,7 @@
 package com.adaptor.deadrecall.mixin;
 
 import com.adaptor.deadrecall.DeathLocationManager;
+import com.adaptor.deadrecall.DiscordBridge;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
@@ -17,7 +18,17 @@ public abstract class ServerPlayerEntityMixin {
         ServerPlayerEntity serverPlayer = (ServerPlayerEntity)(Object)this;
         BlockPos pos = serverPlayer.getBlockPos();
         World world = serverPlayer.getWorld();
+
+        // 记录死亡座标
         DeathLocationManager.setDeathLocation(serverPlayer, pos, world);
+
+        // 发送死亡消息到 Discord
+        String playerName = serverPlayer.getName().getString();
+        String deathMessage = source.getDeathMessage(serverPlayer).getString();
+        String location = String.format("座標: X=%d, Y=%d, Z=%d", pos.getX(), pos.getY(), pos.getZ());
+        String fullMessage = String.format("💀 %s\n📍 %s", deathMessage, location);
+
+        DiscordBridge.sendChatMessage(playerName, fullMessage);
     }
 }
 

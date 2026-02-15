@@ -9,6 +9,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -113,7 +114,7 @@ public class DiscordBridge {
                 if (responseCode == 200) {
                     Deadrecall.LOGGER.info("[DiscordBridge] 發送成功 (HTTP 200): {}", responseBody);
                 } else {
-                    Deadrecall.LOGGER.warn("[DiscordBridge] 發送失敗 (HTTP {}): {}", responseCode, responseBody);
+                    Deadrecall.LOGGER.warn("[DiscordBridge] 發送失敗 (HTTP {}): {}", Optional.of(responseCode), responseBody);
                 }
 
                 conn.disconnect();
@@ -131,9 +132,8 @@ public class DiscordBridge {
 
         EXECUTOR.submit(() -> {
             try {
-                String json = String.format(
-                        "{\"status\":\"%s\",\"players_online\":\"%d\",\"players_max\":\"%d\",\"version\":\"%s\",\"tps\":\"%.1f\"}",
-                        escapeJson(status), playersOnline, playersMax, escapeJson(version), tps
+                String json = String.format("{\"status\":\"%s\",\"players_online\":\"%d\",\"players_max\":\"%d\",\"version\":\"%s\",\"tps\":\"%.1f\"}",
+                        escapeJson(status), (Object) playersOnline, (Object) playersMax, escapeJson(version), (Object) tps
                 );
 
                 HttpURLConnection conn = (HttpURLConnection) new URL(workerUrl + "/api/mc/server/status").openConnection();
