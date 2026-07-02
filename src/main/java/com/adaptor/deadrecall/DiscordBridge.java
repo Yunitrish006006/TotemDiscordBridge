@@ -27,38 +27,71 @@ public class DiscordBridge {
     private static String workerUrl = "";
     private static String apiKey = "";
     private static boolean enabled = false;
+    private static Path configFilePath;
 
     /**
      * 初始化設定（從 config 檔讀取）
      */
     public static void init(Path configDir) {
-        Path configFile = configDir.resolve("discord-bridge.json");
+        configFilePath = configDir.resolve("discord-bridge.json");
 
-        if (!Files.exists(configFile)) {
+        if (!Files.exists(configFilePath)) {
             // 建立預設設定檔
-            createDefaultConfig(configFile);
-            Deadrecall.LOGGER.info("[DiscordBridge] 已建立預設設定檔: {}", configFile);
+            createDefaultConfig(configFilePath);
+            Deadrecall.LOGGER.info("[DiscordBridge] 已建立預設設定檔: {}", configFilePath);
             Deadrecall.LOGGER.info("[DiscordBridge] 請編輯設定檔填入 Worker URL 和 API Key");
             return;
         }
 
+        loadConfigFromFile();
+    }
+
+    public static synchronized void updateConfig(boolean newEnabled, String newWorkerUrl, String newApiKey) throws IOException {
+        if (configFilePath == null) {
+            throw new IllegalStateException("DiscordBridge 尚未初始化");
+        }
+        String normalizedWorkerUrl = normalizeWorkerUrl(newWorkerUrl);
+        String normalizedApiKey = newApiKey == null ? "" : newApiKey.trim();
+        if (newEnabled && (normalizedWorkerUrl.isEmpty() || normalizedApiKey.isEmpty())) {
+            throw new IllegalArgumentException("啟用 Discord Bridge 時，workerUrl 與 apiKey 不能為空");
+        }
+
+        JsonObject config = new JsonObject();
+        config.addProperty("enabled", newEnabled);
+        config.addProperty("workerUrl", normalizedWorkerUrl);
+        config.addProperty("apiKey", normalizedApiKey);
+
+        Files.createDirectories(configFilePath.getParent());
+        Files.writeString(configFilePath, config.toString(), StandardCharsets.UTF_8);
+        loadConfigFromFile();
+    }
+
+    public static synchronized void reload() {
+        if (configFilePath == null) {
+            return;
+        }
+        loadConfigFromFile();
+    }
+
+    private static synchronized void loadConfigFromFile() {
+        if (configFilePath == null) {
+            enabled = false;
+            workerUrl = "";
+            apiKey = "";
+            return;
+        }
         try {
-            String content = Files.readString(configFile, StandardCharsets.UTF_8);
+            String content = Files.readString(configFilePath, StandardCharsets.UTF_8);
             JsonObject config = JsonParser.parseString(content).getAsJsonObject();
 
             enabled = config.has("enabled") && config.get("enabled").getAsBoolean();
-            workerUrl = config.has("workerUrl") ? config.get("workerUrl").getAsString() : "";
+            workerUrl = normalizeWorkerUrl(config.has("workerUrl") ? config.get("workerUrl").getAsString() : "");
             apiKey = config.has("apiKey") ? config.get("apiKey").getAsString() : "";
 
             if (enabled && (workerUrl.isEmpty() || apiKey.isEmpty())) {
                 Deadrecall.LOGGER.warn("[DiscordBridge] 已啟用但缺少 workerUrl 或 apiKey，停用功能");
                 enabled = false;
                 return;
-            }
-
-            // 移除尾部斜線
-            if (workerUrl.endsWith("/")) {
-                workerUrl = workerUrl.substring(0, workerUrl.length() - 1);
             }
 
             if (enabled) {
@@ -157,6 +190,14 @@ public class DiscordBridge {
         return enabled;
     }
 
+    public static String getWorkerUrl() {
+        return workerUrl;
+    }
+
+    public static String getApiKey() {
+        return apiKey;
+    }
+
     private static String escapeJson(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\")
@@ -166,12 +207,23 @@ public class DiscordBridge {
                 .replace("\t", "\\t");
     }
 
+    private static String normalizeWorkerUrl(String url) {
+        if (url == null) {
+            return "";
+        }
+        String normalized = url.trim();
+        if (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
     private static void createDefaultConfig(Path configFile) {
         String defaultConfig = """
                 {
                   "enabled": false,
-                  "workerUrl": "https://mc-discord-bot.yunitrish0419.workers.dev",
-                  "apiKey": "mc_ak_7Xp9Qm3vKsW2nF8jRtYb6LdA4eHcZu"
+                  "workerUrl": "",
+                  "apiKey": ""
                 }
                 """;
         try {
