@@ -7,7 +7,8 @@
     "EnchantmentMenuMixin",
     "EnchantingTableBlockMixin",
     "RecipeManagerMixin",
-    "StructureTemplateMixin"
+    "StructureTemplateMixin",
+    "VillagerEntityMixin"
   ],
   "client": [],
   "injectors": {

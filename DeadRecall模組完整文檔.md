@@ -25,7 +25,7 @@
 
 #### 設定方式（伺服器管理員）
 1. 在伺服器 `config/` 目錄找到 `discord-bridge.json`（首次啟動自動建立）
-2. 編輯設定檔：
+2. 編輯設定檔，填入下列欄位：
 ```json
 {
   "enabled": true,
@@ -33,12 +33,21 @@
   "apiKey": "your-api-key"
 }
 ```
+| 欄位 | 要填寫什麼 | 範例 |
+|------|------------|------|
+| `enabled` | 是否啟用 Discord 聊天橋接 | `true` |
+| `workerUrl` | 你的 Cloudflare Worker 網址 | `https://your-worker.workers.dev` |
+| `apiKey` | 與 Worker 端一致的 API 金鑰 | `your-api-key` |
 3. 重啟伺服器後生效
 
 #### Cloudflare Worker 設定（管理員）
 將 `cloudflare-worker-example.js` 部署到 Cloudflare Worker，並設定以下環境變數：
-- `MC_API_KEY`：與 `discord-bridge.json` 中 `apiKey` 相同的金鑰
-- `DISCORD_WEBHOOK_URLS`：Discord Webhook URL 的 JSON 陣列，例如：
+| 環境變數 | 要填寫什麼 | 範例 |
+|----------|------------|------|
+| `MC_API_KEY` | 與 `discord-bridge.json` 中 `apiKey` 相同的金鑰 | `your-api-key` |
+| `DISCORD_WEBHOOK_URLS` | Discord Webhook URL 的 JSON 陣列 | `["https://discord.com/api/webhooks/xxx/yyy"]` |
+
+`DISCORD_WEBHOOK_URLS` 範例：
   ```
   ["https://discord.com/api/webhooks/xxx/yyy"]
   ```
@@ -116,6 +125,11 @@
 - ✅ 每次只能堆疊 1 個（不可疊放）
 - ✅ Shift+點擊快速移動物品
 
+#### 整理快捷鍵
+- 預設按鍵：中鍵
+- 會整理你目前開著的物品介面內容，將相同物品盡量堆疊並依物品排序
+- 可到 **設定 → 按鍵綁定 → DeadRecall** 重新指定快捷鍵
+
 ---
 
 ### ⚗️ 煉金配方（新增資源）
@@ -192,6 +206,7 @@
 ## 📈 更新日誌
 
 ### v1.7.2（當前版本）
+- ✅ 新增背包整理快捷鍵（預設中鍵）
 - ✅ 新增 Discord 聊天橋接功能（Cloudflare Worker 架構）
 - ✅ 新增 `/back` 死亡座標傳送指令
 - ✅ 新增硝石、缽、帶硫磺的缽物品（硫磺改用原版）

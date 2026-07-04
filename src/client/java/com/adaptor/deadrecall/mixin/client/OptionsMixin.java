@@ -24,12 +24,26 @@ public abstract class OptionsMixin {
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void deadrecall$injectDiscordConfigKey(net.minecraft.client.Minecraft minecraft, File file, CallbackInfo ci) {
-        KeyMapping key = DeadrecallClient.openDiscordConfigKey;
-        if (key == null) return;
-        for (KeyMapping km : keyMappings) {
-            if (km == key) return;
+        KeyMapping[] keys = new KeyMapping[] {
+                DeadrecallClient.openDiscordConfigKey,
+                DeadrecallClient.sortBackpackKey
+        };
+        for (KeyMapping key : keys) {
+            if (key == null) {
+                continue;
+            }
+            boolean exists = false;
+            for (KeyMapping km : keyMappings) {
+                if (km == key) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (exists) {
+                continue;
+            }
+            keyMappings = Arrays.copyOf(keyMappings, keyMappings.length + 1);
+            keyMappings[keyMappings.length - 1] = key;
         }
-        keyMappings = Arrays.copyOf(keyMappings, keyMappings.length + 1);
-        keyMappings[keyMappings.length - 1] = key;
     }
 }

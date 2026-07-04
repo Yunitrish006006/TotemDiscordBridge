@@ -2,7 +2,9 @@ package com.adaptor.deadrecall;
 
 import com.adaptor.deadrecall.item.ModItems;
 import com.adaptor.deadrecall.network.DiscordConfigSyncPayload;
+import com.adaptor.deadrecall.network.ManageDiscordChannelPayload;
 import com.adaptor.deadrecall.network.RequestDiscordConfigPayload;
+import com.adaptor.deadrecall.network.SortBackpackPayload;
 import com.adaptor.deadrecall.network.SaveDiscordConfigPayload;
 import com.adaptor.deadrecall.recipe.ModRecipes;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -22,8 +24,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
@@ -53,6 +59,10 @@ public class Deadrecall implements ModInitializer {
                 RequestDiscordConfigPayload.TYPE, RequestDiscordConfigPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 SaveDiscordConfigPayload.TYPE, SaveDiscordConfigPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                ManageDiscordChannelPayload.TYPE, ManageDiscordChannelPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                SortBackpackPayload.TYPE, SortBackpackPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 DiscordConfigSyncPayload.TYPE, DiscordConfigSyncPayload.CODEC);
 
@@ -60,26 +70,73 @@ public class Deadrecall implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(RequestDiscordConfigPayload.TYPE,
                 (payload, context) -> {
                     ServerPlayer player = context.player();
+                    var channels = DiscordBridge.getChannels();
+                    var syncedChannels = new ArrayList<DiscordConfigSyncPayload.ChannelData>(channels.size());
+                    for (var channel : channels) {
+                        syncedChannels.add(new DiscordConfigSyncPayload.ChannelData(channel.id, channel.name));
+                    }
                     ServerPlayNetworking.send(player, new DiscordConfigSyncPayload(
                             DiscordBridge.isEnabled(),
                             DiscordBridge.getWorkerUrl(),
-                            DiscordBridge.getApiKey()
+                            DiscordBridge.getApiKey(),
+                            syncedChannels
                     ));
                 });
 
-        // 收到客戶端儲存請求時，更新設定
+        // 收到客戶端儲存請求時，更新設定（需要 OP 權限）
         ServerPlayNetworking.registerGlobalReceiver(SaveDiscordConfigPayload.TYPE,
                 (payload, context) -> {
+                    ServerPlayer player = context.player();
+                    
+                    if (!canManageDiscordBridge(player)) {
+                        player.sendSystemMessage(Component.literal("§c你沒有權限修改 Discord Bridge 設定！"));
+                        LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權修改設定", player.getName().getString());
+                        return;
+                    }
+                    
                     try {
                         DiscordBridge.updateConfig(payload.enabled(), payload.workerUrl(), payload.apiKey());
-                        context.player().sendSystemMessage(Component.literal("§aDiscord Bridge 設定已更新"));
+                        player.sendSystemMessage(Component.literal("§aDiscord Bridge 設定已更新"));
                     } catch (IllegalArgumentException e) {
-                        context.player().sendSystemMessage(Component.literal("§c" + e.getMessage()));
+                        player.sendSystemMessage(Component.literal("§c" + e.getMessage()));
                     } catch (Exception e) {
-                        context.player().sendSystemMessage(Component.literal("§c更新失敗：" + e.getMessage()));
+                        player.sendSystemMessage(Component.literal("§c更新失敗：" + e.getMessage()));
                         LOGGER.error("[DiscordBridge] 更新設定失敗", e);
                     }
                 });
+
+        // 收到頻道管理請求時，添加或移除頻道
+        ServerPlayNetworking.registerGlobalReceiver(ManageDiscordChannelPayload.TYPE,
+                (payload, context) -> {
+                    ServerPlayer player = context.player();
+                    
+                    if (!canManageDiscordBridge(player)) {
+                        player.sendSystemMessage(Component.literal("§c你沒有權限管理 Discord 頻道！"));
+                        LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權管理頻道", player.getName().getString());
+                        return;
+                    }
+                    
+                    try {
+                        if ("add".equals(payload.action())) {
+                            DiscordBridge.addChannel(payload.channelId(), payload.channelName());
+                            player.sendSystemMessage(Component.literal("§a已添加 Discord 頻道: " + payload.channelName()));
+                        } else if ("remove".equals(payload.action())) {
+                            DiscordBridge.removeChannel(payload.channelId());
+                            player.sendSystemMessage(Component.literal("§a已移除 Discord 頻道: " + payload.channelId()));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        player.sendSystemMessage(Component.literal("§c" + e.getMessage()));
+                    } catch (Exception e) {
+                        player.sendSystemMessage(Component.literal("§c操作失敗：" + e.getMessage()));
+                        LOGGER.error("[DiscordBridge] 管理頻道失敗", e);
+                    }
+                });
+
+        ServerPlayNetworking.registerGlobalReceiver(SortBackpackPayload.TYPE,
+                (payload, context) -> context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    sortOpenContainer(player, payload.target());
+                }));
 
         // 註冊死亡背包功能 - 當玩家死亡時收集掉落物品
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
@@ -165,6 +222,56 @@ public class Deadrecall implements ModInitializer {
                                                                     return 0;
                                                                 }
                                                             })))))
+                            .then(Commands.literal("channel")
+                                    .then(Commands.literal("add")
+                                            .then(Commands.argument("channelId", StringArgumentType.string())
+                                                    .then(Commands.argument("channelName", StringArgumentType.string())
+                                                            .executes(context -> {
+                                                               String channelId = StringArgumentType.getString(context, "channelId");
+                                                               String channelName = StringArgumentType.getString(context, "channelName");
+                                                               try {
+                                                                   DiscordBridge.addChannel(channelId, channelName);
+                                                                   context.getSource().sendSuccess(() -> Component.literal("§a已添加 Discord 頻道: " + channelName), true);
+                                                                   return 1;
+                                                               } catch (IllegalArgumentException e) {
+                                                                   context.getSource().sendFailure(Component.literal("§c" + e.getMessage()));
+                                                                   return 0;
+                                                               } catch (Exception e) {
+                                                                   context.getSource().sendFailure(Component.literal("§c添加頻道失敗：" + e.getMessage()));
+                                                                   LOGGER.error("[DiscordBridge] 添加頻道失敗", e);
+                                                                   return 0;
+                                                               }
+                                                            }))))
+                                    .then(Commands.literal("remove")
+                                            .then(Commands.argument("channelId", StringArgumentType.string())
+                                                    .executes(context -> {
+                                                        String channelId = StringArgumentType.getString(context, "channelId");
+                                                        try {
+                                                            DiscordBridge.removeChannel(channelId);
+                                                            context.getSource().sendSuccess(() -> Component.literal("§a已移除 Discord 頻道: " + channelId), true);
+                                                            return 1;
+                                                        } catch (IllegalArgumentException e) {
+                                                            context.getSource().sendFailure(Component.literal("§c" + e.getMessage()));
+                                                            return 0;
+                                                        } catch (Exception e) {
+                                                            context.getSource().sendFailure(Component.literal("§c移除頻道失敗：" + e.getMessage()));
+                                                            LOGGER.error("[DiscordBridge] 移除頻道失敗", e);
+                                                            return 0;
+                                                        }
+                                                    })))
+                                    .then(Commands.literal("list")
+                                            .executes(context -> {
+                                                var channels = DiscordBridge.getChannels();
+                                                if (channels.isEmpty()) {
+                                                    context.getSource().sendSuccess(() -> Component.literal("§c尚未配置任何 Discord 頻道"), true);
+                                                } else {
+                                                    context.getSource().sendSuccess(() -> Component.literal("§a已配置 " + channels.size() + " 個頻道:"), true);
+                                                    for (var ch : channels) {
+                                                        context.getSource().sendSuccess(() -> Component.literal("  - " + ch.name + " (" + ch.id + ")"), false);
+                                                    }
+                                                }
+                                                return 1;
+                                            })))
             );
         });
     }
@@ -249,4 +356,157 @@ public class Deadrecall implements ModInitializer {
             player.getInventory().setChanged();
         }
     }
+
+    private boolean canManageDiscordBridge(ServerPlayer player) {
+        if (player.getAbilities().instabuild || player.isCreative()) {
+            return true;
+        }
+
+        var server = player.level().getServer();
+        if (server == null) {
+            return false;
+        }
+
+        if (server.isSingleplayer()) {
+            var owner = server.getSingleplayerProfile();
+            if (owner != null && owner.id().equals(player.getGameProfile().id())) {
+                return true;
+            }
+        }
+
+        return server.getPlayerList().isOp(new NameAndId(player.getGameProfile()));
+    }
+
+    private boolean sortOpenContainer(ServerPlayer player, SortBackpackPayload.Target target) {
+        AbstractContainerMenu menu = player.containerMenu;
+        if (menu == null) {
+            return false;
+        }
+
+        if (target == SortBackpackPayload.Target.PLAYER) {
+            return sortPlayerInventorySlots(menu, player);
+        }
+
+        boolean sorted;
+        if (menu instanceof InventoryMenu) {
+            sorted = sortSlotRange(menu, 0, InventoryMenu.INV_SLOT_START);
+        } else {
+            int topSlotCount = findTopSlotCount(menu, player);
+            if (topSlotCount <= 0) {
+                return false;
+            }
+            sorted = sortSlotRange(menu, 0, topSlotCount);
+        }
+
+        if (sorted) {
+            menu.broadcastChanges();
+        }
+        return sorted;
+    }
+
+    private boolean sortPlayerInventorySlots(AbstractContainerMenu menu, ServerPlayer player) {
+        List<Integer> playerSlots = new ArrayList<>();
+        for (int i = 0; i < menu.slots.size(); i++) {
+            Slot slot = menu.slots.get(i);
+            if (slot.container == player.getInventory()) {
+                playerSlots.add(i);
+            }
+        }
+
+        if (playerSlots.isEmpty()) {
+            return false;
+        }
+
+        List<ItemStack> stacks = new ArrayList<>(playerSlots.size());
+        for (int slotIndex : playerSlots) {
+            ItemStack stack = menu.getSlot(slotIndex).getItem();
+            if (!stack.isEmpty()) {
+                stacks.add(stack.copy());
+            }
+        }
+
+        if (stacks.isEmpty()) {
+            return false;
+        }
+
+        applySortedStacks(menu, playerSlots, stacks);
+        menu.broadcastChanges();
+        return true;
+    }
+
+    private int findTopSlotCount(AbstractContainerMenu menu, ServerPlayer player) {
+        int count = 0;
+        for (Slot slot : menu.slots) {
+            if (slot.container == player.getInventory()) {
+                break;
+            }
+            count++;
+        }
+        return count;
+    }
+
+    private boolean sortSlotRange(AbstractContainerMenu menu, int startInclusive, int endExclusive) {
+        List<Integer> slotIndexes = new ArrayList<>();
+        List<ItemStack> stacks = new ArrayList<>();
+        for (int i = startInclusive; i < endExclusive; i++) {
+            slotIndexes.add(i);
+            ItemStack stack = menu.getSlot(i).getItem();
+            if (!stack.isEmpty()) {
+                stacks.add(stack.copy());
+            }
+        }
+
+        if (stacks.isEmpty()) {
+            return false;
+        }
+
+        applySortedStacks(menu, slotIndexes, stacks);
+        return true;
+    }
+
+    private void applySortedStacks(AbstractContainerMenu menu, List<Integer> targetSlots, List<ItemStack> stacks) {
+        stacks.sort((left, right) -> {
+            String leftId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(left.getItem()).toString();
+            String rightId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(right.getItem()).toString();
+            int compare = leftId.compareTo(rightId);
+            if (compare != 0) {
+                return compare;
+            }
+            return Integer.compare(right.getCount(), left.getCount());
+        });
+
+        List<ItemStack> compacted = compactStacks(stacks);
+        for (int i = 0; i < targetSlots.size(); i++) {
+            ItemStack stack = i < compacted.size() ? compacted.get(i).copy() : ItemStack.EMPTY;
+            menu.getSlot(targetSlots.get(i)).setByPlayer(stack);
+        }
+    }
+
+    private List<ItemStack> compactStacks(List<ItemStack> stacks) {
+        List<ItemStack> compacted = new ArrayList<>();
+        for (ItemStack stack : stacks) {
+            ItemStack remaining = stack.copy();
+            if (!compacted.isEmpty()) {
+                ItemStack last = compacted.get(compacted.size() - 1);
+                if (ItemStack.isSameItemSameComponents(last, remaining)) {
+                    int movable = Math.min(last.getMaxStackSize() - last.getCount(), remaining.getCount());
+                    if (movable > 0) {
+                        last.grow(movable);
+                        remaining.shrink(movable);
+                    }
+                }
+            }
+            while (!remaining.isEmpty()) {
+                int count = remaining.getCount();
+                int max = remaining.getMaxStackSize();
+                int take = Math.min(count, max);
+                ItemStack next = remaining.copy();
+                next.setCount(take);
+                compacted.add(next);
+                remaining.shrink(take);
+            }
+        }
+        return compacted;
+    }
+
 }
