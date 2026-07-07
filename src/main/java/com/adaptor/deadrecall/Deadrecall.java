@@ -1,6 +1,13 @@
 package com.adaptor.deadrecall;
 
+import com.adaptor.deadrecall.alchemy.AlchemyHandler;
+import com.adaptor.deadrecall.block.ModBlocks;
+import com.adaptor.deadrecall.block.entity.ModBlockEntities;
+import com.adaptor.deadrecall.item.BackpackItemHelper;
 import com.adaptor.deadrecall.item.ModItems;
+import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
+import com.adaptor.deadrecall.network.CopperGolemOperationPayload;
+import com.adaptor.deadrecall.network.CopperWrenchBindingsPayload;
 import com.adaptor.deadrecall.network.DiscordConfigSyncPayload;
 import com.adaptor.deadrecall.network.ManageDiscordChannelPayload;
 import com.adaptor.deadrecall.network.RequestDiscordConfigPayload;
@@ -12,6 +19,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -21,6 +29,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
@@ -47,8 +56,12 @@ public class Deadrecall implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // 註冊物品
+        // 註冊物品與方塊
+        ModBlocks.registerModBlocks();
+        ModBlockEntities.registerModBlockEntities();
         ModItems.registerModItems();
+        AlchemyHandler.register();
+        CopperGolemWrenchHandler.register();
         ModRecipes.registerModRecipes();
 
         // 初始化 Discord 橋接
@@ -63,8 +76,12 @@ public class Deadrecall implements ModInitializer {
                 ManageDiscordChannelPayload.TYPE, ManageDiscordChannelPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 SortBackpackPayload.TYPE, SortBackpackPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemOperationPayload.TYPE, CopperGolemOperationPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 DiscordConfigSyncPayload.TYPE, DiscordConfigSyncPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                CopperWrenchBindingsPayload.TYPE, CopperWrenchBindingsPayload.CODEC);
 
         // 收到客戶端請求時，回傳目前設定
         ServerPlayNetworking.registerGlobalReceiver(RequestDiscordConfigPayload.TYPE,
@@ -138,6 +155,10 @@ public class Deadrecall implements ModInitializer {
                     sortOpenContainer(player, payload.target());
                 }));
 
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemOperationPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running())));
+
         // 註冊死亡背包功能 - 當玩家死亡時收集掉落物品
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (entity instanceof ServerPlayer player) {
@@ -152,6 +173,14 @@ public class Deadrecall implements ModInitializer {
             String content = message.decoratedContent().getString();
             DiscordBridge.sendChatMessage(username, content);
         });
+
+        ServerLifecycleEvents.SERVER_STARTED.register(server ->
+                sendDiscordServerStatus(server, "伺服器已開啟", 20.0D, false));
+        ServerLifecycleEvents.SERVER_STOPPING.register(server ->
+                sendDiscordServerStatus(server, "伺服器已關閉", 0.0D, true));
+
+        // 清理銅魁儡失效綁定，並在整箱都無法分類時維持原地跳躍
+        ServerTickEvents.END_SERVER_TICK.register(CopperGolemWrenchHandler::tickCopperGolemWrenchState);
 
         // 生存模式不允許持有一般書櫃：統一替換為書本（每個書櫃 3 本）
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -276,13 +305,25 @@ public class Deadrecall implements ModInitializer {
         });
     }
 
+    private void sendDiscordServerStatus(MinecraftServer server, String status, double tps, boolean immediate) {
+        int playersOnline = server.getPlayerList().getPlayerCount();
+        int playersMax = server.getPlayerList().getMaxPlayers();
+        String version = server.getServerVersion();
+
+        if (immediate) {
+            DiscordBridge.sendServerStatusImmediately(status, playersOnline, playersMax, version, tps);
+        } else {
+            DiscordBridge.sendServerStatus(status, playersOnline, playersMax, version, tps);
+        }
+    }
+
     private void handlePlayerDeath(ServerPlayer player) {
         ServerLevel world = (ServerLevel) player.level();
         BlockPos deathPos = player.blockPosition();
 
         LOGGER.info("Player {} died at {}, starting death backpack collection", player.getName().getString(), deathPos);
 
-        // 延遲 2 秒後收集掉落物品（給物品掉落時間）
+        // 延到掉落物生成後再收集。
         world.getServer().execute(() -> {
             world.getServer().execute(() -> {
                 LOGGER.info("Collecting dropped items for player {} at {}", player.getName().getString(), deathPos);
@@ -300,6 +341,13 @@ public class Deadrecall implements ModInitializer {
 
                     // 收集物品並移除實體
                     for (ItemEntity itemEntity : droppedItems) {
+                        if (BackpackItemHelper.isBackpackItem(itemEntity.getItem())) {
+                            LOGGER.info("Skipped backpack item from death backpack collection: {} x{}",
+                                    itemEntity.getItem().getItem().getName(itemEntity.getItem()).getString(),
+                                    itemEntity.getItem().getCount());
+                            continue;
+                        }
+
                         collectedItems.add(itemEntity.getItem().copy());
                         itemEntity.discard(); // 移除實體
                         LOGGER.info("Collected item: {} x{}", itemEntity.getItem().getItem().getName(itemEntity.getItem()).getString(), itemEntity.getItem().getCount());
@@ -406,9 +454,10 @@ public class Deadrecall implements ModInitializer {
 
     private boolean sortPlayerInventorySlots(AbstractContainerMenu menu, ServerPlayer player) {
         List<Integer> playerSlots = new ArrayList<>();
+        int nonEquipmentSlotCount = player.getInventory().getNonEquipmentItems().size();
         for (int i = 0; i < menu.slots.size(); i++) {
             Slot slot = menu.slots.get(i);
-            if (slot.container == player.getInventory()) {
+            if (slot.container == player.getInventory() && slot.getContainerSlot() < nonEquipmentSlotCount) {
                 playerSlots.add(i);
             }
         }

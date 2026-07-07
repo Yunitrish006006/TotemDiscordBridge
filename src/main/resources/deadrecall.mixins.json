@@ -6,8 +6,11 @@
     "EnchantmentHelperMixin",
     "EnchantmentMenuMixin",
     "EnchantingTableBlockMixin",
+    "ItemEntityMixin",
+    "PigMixin",
     "RecipeManagerMixin",
     "StructureTemplateMixin",
+    "TransportItemsBetweenContainersMixin",
     "VillagerEntityMixin"
   ],
   "client": [],
