@@ -1,19 +1,51 @@
 package com.adaptor.deadrecall;
 
 import com.adaptor.deadrecall.alchemy.AlchemyHandler;
+import com.adaptor.deadrecall.alchemy.CherryBrewInteractions;
+import com.adaptor.deadrecall.alchemy.PigManureInteractions;
+import com.adaptor.deadrecall.advancement.ModCriteriaTriggers;
 import com.adaptor.deadrecall.block.ModBlocks;
 import com.adaptor.deadrecall.block.entity.ModBlockEntities;
+import com.adaptor.deadrecall.effect.ModMobEffects;
 import com.adaptor.deadrecall.item.BackpackItemHelper;
+import com.adaptor.deadrecall.item.ModItemGroups;
 import com.adaptor.deadrecall.item.ModItems;
+import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
 import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
+import com.adaptor.deadrecall.network.CalibrateSpaceUnitPayload;
+import com.adaptor.deadrecall.network.ConfirmSpaceUnitRegistrationPayload;
 import com.adaptor.deadrecall.network.CopperGolemOperationPayload;
+import com.adaptor.deadrecall.network.CopperGolemFuelSlotPayload;
+import com.adaptor.deadrecall.network.CopperGolemGatheringSlotPayload;
+import com.adaptor.deadrecall.network.CopperGolemGatheringTargetPayload;
+import com.adaptor.deadrecall.network.CopperGolemModePayload;
+import com.adaptor.deadrecall.network.CopperGolemVisualizationPayload;
 import com.adaptor.deadrecall.network.CopperWrenchBindingsPayload;
 import com.adaptor.deadrecall.network.DiscordConfigSyncPayload;
 import com.adaptor.deadrecall.network.ManageDiscordChannelPayload;
+import com.adaptor.deadrecall.network.RenameSpaceUnitPayload;
+import com.adaptor.deadrecall.network.RemoveSpaceUnitFriendPayload;
 import com.adaptor.deadrecall.network.RequestDiscordConfigPayload;
+import com.adaptor.deadrecall.network.RequestCopperGolemVisualizationPayload;
+import com.adaptor.deadrecall.network.RequestSpaceUnitFriendsPayload;
+import com.adaptor.deadrecall.network.RequestSpaceUnitMapPayload;
+import com.adaptor.deadrecall.network.SaveCopperGolemLlmConfigPayload;
 import com.adaptor.deadrecall.network.SortBackpackPayload;
 import com.adaptor.deadrecall.network.SaveDiscordConfigPayload;
+import com.adaptor.deadrecall.network.SpaceUnitFriendsPayload;
+import com.adaptor.deadrecall.network.SpaceUnitMapPayload;
+import com.adaptor.deadrecall.network.SpaceUnitRegistrationPreviewPayload;
+import com.adaptor.deadrecall.network.StartSpaceUnitTeleportPayload;
+import com.adaptor.deadrecall.network.TestCopperGolemLlmConnectionPayload;
+import com.adaptor.deadrecall.network.ToggleSpaceUnitFavoritePayload;
+import com.adaptor.deadrecall.network.UpdateSpaceUnitAccessPayload;
+import com.adaptor.deadrecall.network.UpdateSpaceUnitVisibilityPayload;
+import com.adaptor.deadrecall.network.UpdateCopperGolemBindingCachePayload;
+import com.adaptor.deadrecall.network.UpdateCopperGolemBindingLlmPayload;
+import com.adaptor.deadrecall.network.UpdateCopperGolemGatheringLlmPayload;
 import com.adaptor.deadrecall.recipe.ModRecipes;
+import com.adaptor.deadrecall.space.DistributedSpawnHandler;
+import com.adaptor.deadrecall.space.SpaceUnitHandler;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
@@ -23,45 +55,80 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.server.players.NameAndId;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.Relative;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.phys.AABB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class Deadrecall implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("DeadRecall");
     private static final int BOOKSHELF_REPLACE_INTERVAL_TICKS = 20;
+    private static final int PLAYER_HOTBAR_SLOT_COUNT = 9;
+    private static final double DEATH_BACKPACK_COLLECTION_RADIUS = 10.0D;
+    private static final String TAG_DEATH_BACKPACK_ID = "deadrecall_death_backpack_id";
+    private static final int DISCORD_HEALTH_SAMPLE_INTERVAL_TICKS = 20 * 10;
+    private static final int DISCORD_LOW_TPS_REQUIRED_SAMPLES = 3;
+    private static final double DISCORD_LOW_TPS_THRESHOLD = 15.0D;
+    private static final double DISCORD_RECOVERED_TPS_THRESHOLD = 18.0D;
+    private static final Map<UUID, PendingDeathCollection> pendingDeathCollections = new HashMap<>();
+    private static final Set<UUID> scheduledDeathBackpackCollections = new HashSet<>();
     private static int bookshelfReplaceTicker = 0;
+    private static MinecraftServer discordStatusOpenServer = null;
+    private static long discordHealthTickStartNanos = 0L;
+    private static int discordHealthSampleTicker = 0;
+    private static int discordLowTpsSamples = 0;
+    private static double discordAverageTickMillis = 50.0D;
+    private static boolean discordLowTpsAlertActive = false;
 
     @Override
     public void onInitialize() {
         // 註冊物品與方塊
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerModBlockEntities();
+        ModMobEffects.registerModEffects();
+        ModCriteriaTriggers.registerModCriteriaTriggers();
         ModItems.registerModItems();
+        ModItemGroups.registerModItemGroups();
         AlchemyHandler.register();
+        CherryBrewInteractions.register();
+        PigManureInteractions.register();
         CopperGolemWrenchHandler.register();
+        DistributedSpawnHandler.register();
+        SpaceUnitHandler.register();
         ModRecipes.registerModRecipes();
 
         // 初始化 Discord 橋接
@@ -78,10 +145,58 @@ public class Deadrecall implements ModInitializer {
                 SortBackpackPayload.TYPE, SortBackpackPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 CopperGolemOperationPayload.TYPE, CopperGolemOperationPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemFuelSlotPayload.TYPE, CopperGolemFuelSlotPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemGatheringSlotPayload.TYPE, CopperGolemGatheringSlotPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemGatheringTargetPayload.TYPE, CopperGolemGatheringTargetPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemModePayload.TYPE, CopperGolemModePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                SaveCopperGolemLlmConfigPayload.TYPE, SaveCopperGolemLlmConfigPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                TestCopperGolemLlmConnectionPayload.TYPE, TestCopperGolemLlmConnectionPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateCopperGolemBindingLlmPayload.TYPE, UpdateCopperGolemBindingLlmPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateCopperGolemBindingCachePayload.TYPE, UpdateCopperGolemBindingCachePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateCopperGolemGatheringLlmPayload.TYPE, UpdateCopperGolemGatheringLlmPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                RequestCopperGolemVisualizationPayload.TYPE, RequestCopperGolemVisualizationPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                RequestSpaceUnitMapPayload.TYPE, RequestSpaceUnitMapPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                RequestSpaceUnitFriendsPayload.TYPE, RequestSpaceUnitFriendsPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                RemoveSpaceUnitFriendPayload.TYPE, RemoveSpaceUnitFriendPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                StartSpaceUnitTeleportPayload.TYPE, StartSpaceUnitTeleportPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                ToggleSpaceUnitFavoritePayload.TYPE, ToggleSpaceUnitFavoritePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CalibrateSpaceUnitPayload.TYPE, CalibrateSpaceUnitPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateSpaceUnitVisibilityPayload.TYPE, UpdateSpaceUnitVisibilityPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                RenameSpaceUnitPayload.TYPE, RenameSpaceUnitPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateSpaceUnitAccessPayload.TYPE, UpdateSpaceUnitAccessPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                ConfirmSpaceUnitRegistrationPayload.TYPE, ConfirmSpaceUnitRegistrationPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 DiscordConfigSyncPayload.TYPE, DiscordConfigSyncPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 CopperWrenchBindingsPayload.TYPE, CopperWrenchBindingsPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                CopperGolemVisualizationPayload.TYPE, CopperGolemVisualizationPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                SpaceUnitMapPayload.TYPE, SpaceUnitMapPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                SpaceUnitFriendsPayload.TYPE, SpaceUnitFriendsPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                SpaceUnitRegistrationPreviewPayload.TYPE, SpaceUnitRegistrationPreviewPayload.CODEC);
 
         // 收到客戶端請求時，回傳目前設定
         ServerPlayNetworking.registerGlobalReceiver(RequestDiscordConfigPayload.TYPE,
@@ -157,13 +272,210 @@ public class Deadrecall implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(CopperGolemOperationPayload.TYPE,
                 (payload, context) -> context.server().execute(() ->
-                        CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running())));
+                        CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running(), payload.revision())));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemFuelSlotPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.handleFuelSlotFromUi(context.player(), payload.golemId(), payload.action(), payload.revision())));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemGatheringSlotPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.handleGatheringSlotFromUi(context.player(), payload.golemId(), payload.slot(), payload.action(), payload.revision())));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemGatheringTargetPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.handleGatheringTargetFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.value(),
+                                payload.tag(),
+                                payload.targetSet(),
+                                payload.action(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemModePayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setModeFromUi(context.player(), payload.golemId(), payload.mode(), payload.revision())));
+
+        ServerPlayNetworking.registerGlobalReceiver(SaveCopperGolemLlmConfigPayload.TYPE,
+                (payload, context) -> context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (!canManageDiscordBridge(player)) {
+                        player.sendSystemMessage(Component.literal("§c你沒有權限修改 LLM API 設定！"));
+                        LOGGER.warn("[CopperGolemLLM] 玩家 {} 嘗試未授權修改設定", player.getName().getString());
+                        return;
+                    }
+
+                    CopperGolemWrenchHandler.setGolemLlmConfigFromUi(player, payload.golemId(), payload.apiUrl(), payload.apiKey(), payload.model(), payload.revision());
+                    player.sendSystemMessage(Component.literal("§a銅魁儡 LLM API 設定已更新"));
+                }));
+
+        ServerPlayNetworking.registerGlobalReceiver(TestCopperGolemLlmConnectionPayload.TYPE,
+                (payload, context) -> context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (!canManageDiscordBridge(player)) {
+                        player.sendSystemMessage(Component.literal("§c你沒有權限測試 LLM API 設定！"));
+                        LOGGER.warn("[CopperGolemLLM] 玩家 {} 嘗試未授權測試連線", player.getName().getString());
+                        return;
+                    }
+
+                    CopperGolemLlmService.testConnection(
+                            context.server(),
+                            player.getUUID(),
+                            payload.apiUrl(),
+                            payload.apiKey(),
+                            payload.model()
+                    );
+                }));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemBindingLlmPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setBindingLlmFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.dimension(),
+                                payload.x(),
+                                payload.y(),
+                                payload.z(),
+                                payload.enabled(),
+                                payload.prompt(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemBindingCachePayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.moveBindingLlmCacheFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.dimension(),
+                                payload.x(),
+                                payload.y(),
+                                payload.z(),
+                                payload.value(),
+                                payload.tag(),
+                                payload.allowed(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemGatheringLlmPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setGatheringLlmFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.enabled(),
+                                payload.prompt(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(RequestCopperGolemVisualizationPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.sendVisualization(context.player(), payload.golemId())));
+
+        ServerPlayNetworking.registerGlobalReceiver(RequestSpaceUnitMapPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.sendSpaceUnitMap(context.player(), payload.sourceType(), payload.sourceUnitId())));
+
+        ServerPlayNetworking.registerGlobalReceiver(RequestSpaceUnitFriendsPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.sendFriendList(context.player())));
+
+        ServerPlayNetworking.registerGlobalReceiver(RemoveSpaceUnitFriendPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.removeFriend(context.player(), payload.friendId())));
+
+        ServerPlayNetworking.registerGlobalReceiver(StartSpaceUnitTeleportPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.startTeleport(context.player(), payload.sourceType(), payload.sourceUnitId(), payload.targetUnitId())));
+
+        ServerPlayNetworking.registerGlobalReceiver(ToggleSpaceUnitFavoritePayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.setFavorite(
+                                context.player(),
+                                payload.sourceType(),
+                                payload.sourceUnitId(),
+                                payload.targetUnitId(),
+                                payload.favorite()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(CalibrateSpaceUnitPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.calibrateLodestone(
+                                context.player(),
+                                payload.sourceType(),
+                                payload.sourceUnitId(),
+                                payload.targetUnitId()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateSpaceUnitVisibilityPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.setLodestoneVisibility(
+                                context.player(),
+                                payload.sourceType(),
+                                payload.sourceUnitId(),
+                                payload.targetUnitId(),
+                                payload.visibility()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(RenameSpaceUnitPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.setLodestoneName(
+                                context.player(),
+                                payload.sourceType(),
+                                payload.sourceUnitId(),
+                                payload.targetUnitId(),
+                                payload.name()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateSpaceUnitAccessPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.setLodestoneAccess(
+                                context.player(),
+                                payload.sourceType(),
+                                payload.sourceUnitId(),
+                                payload.targetUnitId(),
+                                payload.role(),
+                                payload.playerName(),
+                                payload.enabled()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(ConfirmSpaceUnitRegistrationPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        SpaceUnitHandler.confirmLodestoneRegistration(
+                                context.player(),
+                                payload.dimension(),
+                                payload.x(),
+                                payload.y(),
+                                payload.z()
+                        )));
+
+        ServerLivingEntityEvents.ALLOW_DEATH.register((entity, damageSource, damageAmount) -> {
+            if (entity instanceof ServerPlayer player) {
+                rememberExistingDropsBeforeDeath(player);
+            } else if (entity instanceof net.minecraft.world.entity.animal.golem.CopperGolem golem) {
+                CopperGolemWrenchHandler.clearGatheringDisplayedItem(golem);
+            }
+            return true;
+        });
 
         // 註冊死亡背包功能 - 當玩家死亡時收集掉落物品
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (entity instanceof ServerPlayer player) {
+                DiscordBridge.sendDeathMessage(damageSource.getLocalizedDeathMessage(player).getString());
                 DeathLocationManager.setDeathLocation(player, player.blockPosition(), player.level());
                 handlePlayerDeath(player);
+            } else if (entity instanceof EnderDragon) {
+                DiscordBridge.sendBossDefeated("終界龍", damageSourcePlayerName(damageSource.getEntity()));
+            } else if (entity instanceof WitherBoss) {
+                DiscordBridge.sendBossDefeated("凋零", damageSourcePlayerName(damageSource.getEntity()));
+            } else if (entity instanceof net.minecraft.world.entity.animal.golem.CopperGolem golem) {
+                CopperGolemWrenchHandler.dropGatheringInventory(golem);
+            }
+        });
+
+        ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, damageSource, baseDamageTaken, damageTaken, blocked) -> {
+            if (entity instanceof ServerPlayer player && damageTaken > 0.0F) {
+                SpaceUnitHandler.cancelTeleport(player, Component.translatable("message.deadrecall.space_unit.teleport_cancelled.damage"));
             }
         });
 
@@ -174,13 +486,31 @@ public class Deadrecall implements ModInitializer {
             DiscordBridge.sendChatMessage(username, content);
         });
 
-        ServerLifecycleEvents.SERVER_STARTED.register(server ->
-                sendDiscordServerStatus(server, "伺服器已開啟", 20.0D, false));
+        ServerPlayConnectionEvents.JOIN.register((listener, sender, server) -> {
+            ServerPlayer player = listener.getPlayer();
+            if (isFirstJoin(player)) {
+                DiscordBridge.sendPlayerFirstJoined(player.getName().getString());
+            } else {
+                DiscordBridge.sendPlayerJoined(player.getName().getString());
+            }
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((listener, server) ->
+                DiscordBridge.sendPlayerLeft(listener.getPlayer().getName().getString()));
+
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (server.isDedicatedServer()) {
+                notifyServerOpened(server, false);
+            }
+        });
         ServerLifecycleEvents.SERVER_STOPPING.register(server ->
-                sendDiscordServerStatus(server, "伺服器已關閉", 0.0D, true));
+                notifyServerClosed(server, true));
 
         // 清理銅魁儡失效綁定，並在整箱都無法分類時維持原地跳躍
+        ServerTickEvents.START_SERVER_TICK.register(Deadrecall::trackDiscordHealthTickStart);
+        ServerTickEvents.END_SERVER_TICK.register(Deadrecall::trackDiscordHealthTickEnd);
         ServerTickEvents.END_SERVER_TICK.register(CopperGolemWrenchHandler::tickCopperGolemWrenchState);
+        ServerTickEvents.END_SERVER_TICK.register(SpaceUnitHandler::tickTeleportSessions);
+        ServerTickEvents.END_SERVER_TICK.register(SpaceUnitHandler::tickLodestoneIntegrity);
 
         // 生存模式不允許持有一般書櫃：統一替換為書本（每個書櫃 3 本）
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -209,7 +539,7 @@ public class Deadrecall implements ModInitializer {
                         return 0;
                     }
 
-                    ServerLevel world = (ServerLevel) player.level();
+                    ServerLevel world = context.getSource().getServer().getLevel(loc.dimension);
                     if (world == null) {
                         player.sendSystemMessage(Component.literal("§c找不到死亡世界！"));
                         return 0;
@@ -305,7 +635,37 @@ public class Deadrecall implements ModInitializer {
         });
     }
 
-    private void sendDiscordServerStatus(MinecraftServer server, String status, double tps, boolean immediate) {
+    public static void notifyServerOpened(MinecraftServer server, boolean immediate) {
+        if (server == null) {
+            return;
+        }
+
+        synchronized (Deadrecall.class) {
+            if (discordStatusOpenServer == server) {
+                return;
+            }
+            discordStatusOpenServer = server;
+        }
+
+        sendDiscordServerStatus(server, "伺服器已開啟", 20.0D, immediate);
+    }
+
+    public static void notifyServerClosed(MinecraftServer server, boolean immediate) {
+        if (server == null) {
+            return;
+        }
+
+        synchronized (Deadrecall.class) {
+            if (discordStatusOpenServer != server) {
+                return;
+            }
+            discordStatusOpenServer = null;
+        }
+
+        sendDiscordServerStatus(server, "伺服器已關閉", 0.0D, immediate);
+    }
+
+    private static void sendDiscordServerStatus(MinecraftServer server, String status, double tps, boolean immediate) {
         int playersOnline = server.getPlayerList().getPlayerCount();
         int playersMax = server.getPlayerList().getMaxPlayers();
         String version = server.getServerVersion();
@@ -320,65 +680,156 @@ public class Deadrecall implements ModInitializer {
     private void handlePlayerDeath(ServerPlayer player) {
         ServerLevel world = (ServerLevel) player.level();
         BlockPos deathPos = player.blockPosition();
+        UUID playerId = player.getUUID();
+        PendingDeathCollection pendingCollection = pendingDeathCollections.remove(playerId);
+        Set<UUID> existingDropIds = pendingCollection != null
+                && pendingCollection.dimension().equals(world.dimension())
+                ? pendingCollection.existingDropIds()
+                : Set.of();
+
+        if (!scheduledDeathBackpackCollections.add(playerId)) {
+            LOGGER.warn("Death backpack collection already scheduled for player {}, skipping duplicate", player.getName().getString());
+            return;
+        }
 
         LOGGER.info("Player {} died at {}, starting death backpack collection", player.getName().getString(), deathPos);
 
         // 延到掉落物生成後再收集。
         world.getServer().execute(() -> {
             world.getServer().execute(() -> {
-                LOGGER.info("Collecting dropped items for player {} at {}", player.getName().getString(), deathPos);
+                try {
+                    LOGGER.info("Collecting dropped items for player {} at {}", player.getName().getString(), deathPos);
 
-                // 收集死亡地點附近的掉落物品
-                AABB searchBox = new AABB(deathPos).inflate(10.0); // 搜尋範圍 10 格
-                List<ItemEntity> droppedItems = world.getEntitiesOfClass(ItemEntity.class, searchBox, entity -> true);
+                    // 收集本次死亡後新產生的掉落物，避免把死亡前地上的物品一起裝進死亡背包。
+                    AABB searchBox = new AABB(deathPos).inflate(DEATH_BACKPACK_COLLECTION_RADIUS);
+                    List<ItemEntity> droppedItems = world.getEntitiesOfClass(ItemEntity.class, searchBox,
+                            entity -> entity.isAlive() && !existingDropIds.contains(entity.getUUID()));
 
-                LOGGER.info("Found {} dropped items for player {}", droppedItems.size(), player.getName().getString());
+                    LOGGER.info("Found {} new dropped items for player {}", droppedItems.size(), player.getName().getString());
 
-                if (!droppedItems.isEmpty()) {
-                    // 創建死亡背包
-                    ItemStack deathBackpack = new ItemStack(ModItems.DEATH_BACKPACK);
-                    List<ItemStack> collectedItems = new ArrayList<>();
+                    if (!droppedItems.isEmpty()) {
+                        // 創建死亡背包
+                        ItemStack deathBackpack = new ItemStack(ModItems.DEATH_BACKPACK);
+                        markDeathBackpackUnique(deathBackpack);
+                        List<ItemStack> collectedItems = new ArrayList<>();
 
-                    // 收集物品並移除實體
-                    for (ItemEntity itemEntity : droppedItems) {
-                        if (BackpackItemHelper.isBackpackItem(itemEntity.getItem())) {
-                            LOGGER.info("Skipped backpack item from death backpack collection: {} x{}",
-                                    itemEntity.getItem().getItem().getName(itemEntity.getItem()).getString(),
-                                    itemEntity.getItem().getCount());
-                            continue;
+                        // 收集物品並移除實體
+                        for (ItemEntity itemEntity : droppedItems) {
+                            ItemStack droppedStack = itemEntity.getItem();
+                            if (BackpackItemHelper.isBackpackItem(droppedStack)) {
+                                LOGGER.info("Skipped backpack item from death backpack collection: {} x{}",
+                                        droppedStack.getItem().getName(droppedStack).getString(),
+                                        droppedStack.getCount());
+                                continue;
+                            }
+
+                            if (droppedStack.isEmpty()) {
+                                continue;
+                            }
+
+                            collectedItems.add(droppedStack.copy());
+                            itemEntity.discard(); // 移除實體
+                            LOGGER.info("Collected item: {} x{}", droppedStack.getItem().getName(droppedStack).getString(), droppedStack.getCount());
                         }
 
-                        collectedItems.add(itemEntity.getItem().copy());
-                        itemEntity.discard(); // 移除實體
-                        LOGGER.info("Collected item: {} x{}", itemEntity.getItem().getItem().getName(itemEntity.getItem()).getString(), itemEntity.getItem().getCount());
+                        // 將物品存儲到背包中
+                        if (!collectedItems.isEmpty()) {
+                            deathBackpack.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(collectedItems));
+                            UUID deathNodeId = SpaceUnitHandler.createDeathNode(player, world, deathPos);
+                            SpaceUnitHandler.writeDeathNodeBinding(deathBackpack, deathNodeId);
+
+                            // 在死亡地點生成背包實體
+                            ItemEntity backpackEntity = new ItemEntity(world,
+                                deathPos.getX() + 0.5, deathPos.getY() + 0.5, deathPos.getZ() + 0.5,
+                                deathBackpack);
+
+                            // 設置物品所有者，防止立即消失
+                            backpackEntity.setPickUpDelay(40); // 2 秒拾取延遲
+                            // 將死亡背包標記為不可被傷害/摧毀（例如仙人掌傷害）的一個額外保護
+                            backpackEntity.setUnlimitedLifetime();
+                            world.addFreshEntity(backpackEntity);
+
+                            LOGGER.info("Created death backpack for player {} with {} items at {}",
+                                player.getName().getString(), collectedItems.size(), deathPos);
+                            DiscordBridge.sendDeathBackpackCreated(player.getName().getString());
+
+                            // 通知玩家
+                            player.sendSystemMessage(Component.literal("§e你的物品已被收集到死亡背包中！"));
+                        }
+                    } else {
+                        LOGGER.info("No new dropped items found for player {} at {}", player.getName().getString(), deathPos);
                     }
-
-                    // 將物品存儲到背包中
-                    if (!collectedItems.isEmpty()) {
-                        deathBackpack.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(collectedItems));
-
-                        // 在死亡地點生成背包實體
-                        ItemEntity backpackEntity = new ItemEntity(world,
-                            deathPos.getX() + 0.5, deathPos.getY() + 0.5, deathPos.getZ() + 0.5,
-                            deathBackpack);
-
-                        // 設置物品所有者，防止立即消失
-                        backpackEntity.setPickUpDelay(40); // 2 秒拾取延遲
-                        // 將死亡背包標記為不可被傷害/摧毀（例如仙人掌傷害）的一個額外保護
-                        backpackEntity.setUnlimitedLifetime();
-                        world.addFreshEntity(backpackEntity);
-
-                        LOGGER.info("Created death backpack for player {} with {} items at {}",
-                            player.getName().getString(), collectedItems.size(), deathPos);
-
-                        // 通知玩家
-                        player.sendSystemMessage(Component.literal("§e你的物品已被收集到死亡背包中！"));
-                    }
-                } else {
-                    LOGGER.info("No dropped items found for player {} at {}", player.getName().getString(), deathPos);
+                } finally {
+                    scheduledDeathBackpackCollections.remove(playerId);
                 }
             });
         });
+    }
+
+    private static void rememberExistingDropsBeforeDeath(ServerPlayer player) {
+        ServerLevel world = (ServerLevel) player.level();
+        BlockPos deathPos = player.blockPosition();
+        AABB searchBox = new AABB(deathPos).inflate(DEATH_BACKPACK_COLLECTION_RADIUS);
+        Set<UUID> existingDropIds = new HashSet<>();
+        for (ItemEntity itemEntity : world.getEntitiesOfClass(ItemEntity.class, searchBox, ItemEntity::isAlive)) {
+            existingDropIds.add(itemEntity.getUUID());
+        }
+        pendingDeathCollections.put(player.getUUID(), new PendingDeathCollection(world.dimension(), existingDropIds));
+    }
+
+    private static void markDeathBackpackUnique(ItemStack deathBackpack) {
+        CompoundTag tag = new CompoundTag();
+        tag.putString(TAG_DEATH_BACKPACK_ID, UUID.randomUUID().toString());
+        deathBackpack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+    }
+
+    private static boolean isFirstJoin(ServerPlayer player) {
+        return player.getStats().getValue(Stats.CUSTOM, Stats.PLAY_TIME) <= 0;
+    }
+
+    private static String damageSourcePlayerName(Entity sourceEntity) {
+        return sourceEntity instanceof ServerPlayer player ? player.getName().getString() : "";
+    }
+
+    private static void trackDiscordHealthTickStart(MinecraftServer server) {
+        discordHealthTickStartNanos = System.nanoTime();
+    }
+
+    private static void trackDiscordHealthTickEnd(MinecraftServer server) {
+        if (discordHealthTickStartNanos <= 0L) {
+            return;
+        }
+
+        long elapsedNanos = System.nanoTime() - discordHealthTickStartNanos;
+        double elapsedMillis = elapsedNanos / 1_000_000.0D;
+        discordAverageTickMillis = (discordAverageTickMillis * 0.95D) + (elapsedMillis * 0.05D);
+        discordHealthSampleTicker++;
+        if (discordHealthSampleTicker < DISCORD_HEALTH_SAMPLE_INTERVAL_TICKS) {
+            return;
+        }
+
+        discordHealthSampleTicker = 0;
+        double tps = Math.min(20.0D, 1000.0D / Math.max(1.0D, discordAverageTickMillis));
+        if (tps < DISCORD_LOW_TPS_THRESHOLD) {
+            discordLowTpsSamples++;
+            if (!discordLowTpsAlertActive && discordLowTpsSamples >= DISCORD_LOW_TPS_REQUIRED_SAMPLES) {
+                discordLowTpsAlertActive = true;
+                DiscordBridge.sendServerHealthAlert(String.format(Locale.ROOT, "TPS 持續偏低：%.1f TPS", tps));
+            }
+            return;
+        }
+
+        discordLowTpsSamples = 0;
+        if (discordLowTpsAlertActive && tps >= DISCORD_RECOVERED_TPS_THRESHOLD) {
+            discordLowTpsAlertActive = false;
+            DiscordBridge.sendServerHealthAlert(String.format(Locale.ROOT, "TPS 已恢復：%.1f TPS", tps));
+        }
+    }
+
+    private record PendingDeathCollection(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, Set<UUID> existingDropIds) {
+        private PendingDeathCollection {
+            existingDropIds = Set.copyOf(existingDropIds);
+        }
     }
 
     private void replaceVanillaBookshelfInInventory(ServerPlayer player) {
@@ -457,7 +908,10 @@ public class Deadrecall implements ModInitializer {
         int nonEquipmentSlotCount = player.getInventory().getNonEquipmentItems().size();
         for (int i = 0; i < menu.slots.size(); i++) {
             Slot slot = menu.slots.get(i);
-            if (slot.container == player.getInventory() && slot.getContainerSlot() < nonEquipmentSlotCount) {
+            int containerSlot = slot.getContainerSlot();
+            if (slot.container == player.getInventory()
+                    && containerSlot >= PLAYER_HOTBAR_SLOT_COUNT
+                    && containerSlot < nonEquipmentSlotCount) {
                 playerSlots.add(i);
             }
         }

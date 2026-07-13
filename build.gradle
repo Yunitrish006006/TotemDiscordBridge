@@ -3,18 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-def buildIteration = System.getenv("BUILD_NUMBER") ?: System.getenv("GITHUB_RUN_NUMBER")
-if (!buildIteration) {
-    try {
-        buildIteration = ["git", "rev-list", "--count", "HEAD"].execute(null, rootDir).text.trim()
-    } catch (Exception ignored) {
-    }
-}
-if (!buildIteration) {
-    buildIteration = new Date().format("yyyyMMddHHmmss")
-}
-
-version = "${project.mod_version}.${buildIteration}"
+version = project.mod_version
 group = project.maven_group
 
 base {
@@ -74,13 +63,23 @@ dependencies {
     compileOnly 'com.google.code.gson:gson:2.10.1'
 }
 
-tasks.register("normalizeFabricApiTweakers") {
+tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
     group = "fabric"
-    description = "Normalizes Fabric API tweaker namespaces for modern-yarn dev runtime."
+    description = "Normalizes Fabric API tweaker namespaces for the named development runtime."
 
     doLast {
-        def jarFiles = configurations.runtimeClasspath.resolve().findAll { file ->
+        def jarFiles = new LinkedHashSet<File>()
+        jarFiles.addAll(configurations.runtimeClasspath.resolve().findAll { file ->
             file.name.endsWith(".jar") && file.absolutePath.contains("${File.separator}net.fabricmc.fabric-api${File.separator}")
+        })
+
+        [gradle.gradleUserHomeDir, new File(System.getProperty("user.home"), ".gradle")].each { File cacheRoot ->
+            File fabricApiCache = new File(cacheRoot, "caches/modules-2/files-2.1/net.fabricmc.fabric-api")
+            if (fabricApiCache.isDirectory()) {
+                jarFiles.addAll(fileTree(dir: fabricApiCache, include: "**/*.jar").files.findAll { file ->
+                    !file.name.endsWith("-sources.jar")
+                })
+            }
         }
 
         int patchedFiles = 0
@@ -135,20 +134,14 @@ tasks.register("normalizeFabricApiTweakers") {
             }
         }
 
-        logger.lifecycle("Normalized ${patchedEntries} Fabric API tweaker entries in ${patchedFiles} jars.")
+        logger.lifecycle("Normalized ${patchedEntries} Fabric API tweaker entries in ${patchedFiles} jars for named dev runtime.")
     }
 }
 
-tasks.named("generateRemapClasspath").configure {
-    dependsOn("normalizeFabricApiTweakers")
-}
-
-tasks.named("runClient").configure {
-    dependsOn("normalizeFabricApiTweakers")
-}
-
-tasks.named("runServer").configure {
-    dependsOn("normalizeFabricApiTweakers")
+tasks.matching { task ->
+    task.name in ["runClient", "runServer", "runDatagen"]
+}.configureEach {
+    dependsOn("normalizeFabricApiTweakersForNamedDevRuntime")
 }
 
 processResources {
