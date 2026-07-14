@@ -65,8 +65,10 @@
 ## 進行中
 
 - 銅傀儡模式切換與欄位清空驗證。
+- 銅傀儡管理 GUI 容器化：右半邊原版玩家背包、燃料／採集工具／採集倉庫真實 slot、拖曳與 Shift 點擊。
 - 資源採集、Home 銅箱及 LLM 規則整合。
 - 死亡背包資料安全、複製及物品回注問題修正。
+- 離線玩家身體 OpenSpec 與實作：登出保留身體、重連接回、死亡處理與防複製。
 - OpenSpec 統一與平台架構整理。
 - DeadRecall 向 Totem 模組化架構過渡。
 - Nexus 進階地圖功能、石碑管理與好友權限模型。
@@ -81,6 +83,21 @@
 - SavedData migration framework。
 - 共用 Config、GUI 與 permission API。
 - 第三方 addon 範例與文件。
+
+### Totem Remnant
+
+- 離線玩家身體 Entity、SavedData、playerdata body lock 與 data migration。
+- 登出建立身體、重連接回身體、身體死亡及一次性死亡流程。
+- 與死亡背包、死亡紀錄、Nexus 死亡節點及 Discord Bridge 死亡事件整合。
+- Server restart、server shutdown、crash recovery 與管理員修復指令。
+- 多玩家、PVP、區塊卸載、fake player、Creative／Spectator 與 Dedicated Server 測試。
+
+### Totem Automata
+
+- 銅傀儡管理 GUI 從一般 `Screen` 改為 `Menu` / `Slot` / `AbstractContainerScreen`。
+- 右半邊使用玩家原版背包與快捷欄；左半邊保留銅傀儡設定、模式、來源、目的箱、採集與 LLM 控制。
+- 燃料 slot、採集工具 slot 與採集倉庫 slot 改為伺服器權威真實 slot，支援拖曳、Shift 點擊、關閉歸還與交易回滾。
+- 舊的「按鈕從主手／背包自動搜尋物品」流程已移除，物品移動統一走容器交易。
 
 ### Totem Nexus
 

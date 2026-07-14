@@ -43,6 +43,8 @@ fabricApi {
 }
 
 repositories {
+    mavenCentral()
+
     maven {
         url = "https://repo.codemc.io/repository/relativitymc/"
     }
@@ -61,6 +63,9 @@ dependencies {
     // Use Minecraft's built-in Gson instead of bundling it
     // This is simpler and avoids version conflicts
     compileOnly 'com.google.code.gson:gson:2.10.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
@@ -168,6 +173,10 @@ tasks.withType(JavaCompile).configureEach {
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         it.options.release.set(targetJavaVersion)
     }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 java {
