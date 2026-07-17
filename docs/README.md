@@ -6,6 +6,7 @@
 
 - [Release Notes](releases/README.md)
 - [模組概覽](overview.md)
+- [Gameplay Quality of Life](gameplay-qol.md)
 - [背包系統](backpacks/README.md)
   - [背包等級與防護](backpacks/tiers.md)
   - [死亡背包與 `/back`](backpacks/death-backpack.md)

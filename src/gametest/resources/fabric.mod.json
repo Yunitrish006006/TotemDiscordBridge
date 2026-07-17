@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "deadrecall-gametest",
+  "version": "1.0.0",
+  "name": "DeadRecall GameTests",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.adaptor.deadrecall.gametest.DeathBackpackRestartProbe"
+    ],
+    "fabric-gametest": [
+      "com.adaptor.deadrecall.gametest.ConcretePowderItemHardeningGameTest"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*",
+    "deadrecall": "*"
+  }
+}

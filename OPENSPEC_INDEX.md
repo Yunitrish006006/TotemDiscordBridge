@@ -6,7 +6,7 @@
 
 - [`openspec/README.md`](openspec/README.md)：Totem 平台定位、模組名稱與依賴關係。
 - [`openspec/architecture.md`](openspec/architecture.md)：所有模組必須遵守的開發架構與安全規範。
-- [`openspec/roadmap.md`](openspec/roadmap.md)：已完成、進行中、尚未完成及建議開發順序。
+- [`openspec/roadmap.md`](openspec/roadmap.md)：已完成、進行中、待排程、尚未完成及建議開發順序。
 
 ## 系統規格
 
@@ -25,6 +25,48 @@
 - 傳送時間、偏差、安全落點及結構磨損。
 - 好友、人體磁石及死亡節點。
 - 可開關的分散重生 Gamerule。
+
+近期變更：
+
+```text
+openspec/changes/direct-friend-player-teleport/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/space-unit-lodestone/spec.md
+
+openspec/changes/amethyst-catalyst-teleport-discount/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/space-unit-lodestone/spec.md
+
+openspec/changes/teleport-interface-item-specializations/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/space-unit-lodestone/spec.md
+```
+
+- 雙向好友將直接授權線上 `PLAYER` 目標傳送，不再逐次確認。
+- 固定石碑中的紫水晶催化方塊將降低跨維度碎片成本。
+- 普通羅盤、回生羅盤、書本與已繪製地圖將可開啟傳送介面，並提供死亡節點精準化、路線典籍與地圖覆蓋特化。
+
+### Totem Nexus / Death Node Administration
+
+```text
+openspec/changes/admin-death-node-manager/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/death-node-administration/spec.md
+```
+
+- 管理員可依玩家、Dimension、狀態與時間篩選死亡節點。
+- 支援檢視、安全傳送、停用、永久刪除與批次清理。
+- 破壞性操作使用短效確認 token，所有查詢與變更由 Server 重新驗證。
+- 刪除節點不會自動刪除仍存在的死亡背包；之後回收必須保持冪等。
+- 管理操作需留下稽核紀錄，Discord 通知失敗不得回滾資料操作。
 
 ### Totem Automata / Copper Golem
 
@@ -86,6 +128,70 @@ openspec/
 - 玩家重新登入時接回仍存活身體；身體死亡時執行一次死亡流程。
 - 死亡背包、死亡紀錄、Nexus 死亡節點與 Discord Bridge 死亡事件整合。
 - Server restart、crash recovery、管理員修復與資料不一致處理。
+
+### Totem Remnant / Death Backpack Capture
+
+```text
+openspec/changes/death-backpack-pre-drop-capture/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/death-backpack/spec.md
+```
+
+- 在原版 `Inventory.dropAll()` 前直接從玩家權威 Inventory 建立死亡背包。
+- 保留 ItemStack 數量與完整 Data Components，不再依賴附近 ItemEntity 回收。
+- DeadRecall 背包維持排除並交由原版世界掉落，避免背包巢狀。
+- 第一階段保留舊半徑掃描器作失敗 fallback；成功時會取消舊流程。
+
+### DeadRecall / Container Safety
+
+```text
+openspec/changes/container-nesting-restrictions/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/container-safety/spec.md
+```
+
+- 禁止 DeadRecall 背包與 Bundle、Shulker Box 或設定型可攜式容器雙向巢狀。
+- GUI、Shift 點擊、拖曳、漏斗、漏斗礦車、投擲器與死亡交易使用同一套 Server policy。
+- 舊世界既有非法巢狀資料允許讀取與取出，但禁止重新插入。
+- 不自動刪除、攤平或改寫舊資料。
+- 分類機制需可由 Tag 或 predicate 擴充給其他 Totem 模組與 addon。
+
+### DeadRecall Gameplay Recipes
+
+- [`openspec/specs/gameplay-recipes/spec.md`](openspec/specs/gameplay-recipes/spec.md)
+
+```text
+openspec/changes/lectern-recipe-override/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/gameplay-recipes/spec.md
+```
+
+- 講台配方覆寫為 4 個任意木半磚＋1 本書。
+- 使用 `data/minecraft/recipe/lectern.json` 覆寫原版 recipe ID。
+
+### DeadRecall Gameplay QoL / Concrete Powder Item Hardening
+
+```text
+openspec/changes/concrete-powder-item-hardening/
+├── proposal.md
+├── design.md
+├── tasks.md
+└── specs/item-entity-transformations/spec.md
+```
+
+待排程功能：
+
+- 16 種混凝土粉末掉落物浸入水中後，1:1 轉成同色混凝土。
+- 只由 Server 替換同一個 ItemEntity 的 ItemStack。
+- 保留數量、可相容 Components 與實體狀態。
+- 不掃描全世界，不影響原版方塊硬化。
+- 不需要世界資料 migration。
 
 ## 模組命名方向
 
