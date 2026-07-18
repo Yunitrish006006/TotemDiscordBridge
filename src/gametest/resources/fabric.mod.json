@@ -10,7 +10,11 @@
       "com.adaptor.deadrecall.item.copper.CopperGolemRestartProbe"
     ],
     "fabric-gametest": [
-      "com.adaptor.deadrecall.gametest.ConcretePowderItemHardeningGameTest"
+      "com.adaptor.deadrecall.gametest.ConcretePowderItemHardeningGameTest",
+      "com.adaptor.deadrecall.discord.DiscordAdvancementLocalizationGameTest",
+      "com.adaptor.deadrecall.discord.DiscordVillagerLocalizationGameTest",
+      "com.adaptor.deadrecall.discord.DiscordSystemEventLocalizationGameTest",
+      "com.adaptor.deadrecall.discord.DiscordLocalizationReloadGameTest"
     ]
   },
   "depends": {

@@ -5,6 +5,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -153,5 +160,64 @@ class DiscordEventFormatterTest {
                 new DiscordEventPayload("raid_ended", "系統", "襲擊已結束：勝利"),
                 new DiscordEventPayload("difficulty_changed", "Admin", "Admin 將難度改為 普通")
         ), captured);
+    }
+
+    @Test
+    void componentRenderingUsesOneImmutableSnapshotDuringReload() throws Exception {
+        Map<String, String> previous = DiscordLocalizationService.snapshotForTesting();
+        Map<String, String> first = Map.of(
+                "discord.deadrecall.test.atomic.root", "A-%s",
+                "discord.deadrecall.test.atomic.value", "1"
+        );
+        Map<String, String> second = Map.of(
+                "discord.deadrecall.test.atomic.root", "B-%s",
+                "discord.deadrecall.test.atomic.value", "2"
+        );
+        Component nested = Component.translatable(
+                "discord.deadrecall.test.atomic.root",
+                Component.translatable("discord.deadrecall.test.atomic.value")
+        );
+        Set<String> completeResults = Set.of("A-1", "B-2");
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        try {
+            DiscordLocalizationService.replaceSnapshotForTesting(first);
+            Future<?> writer = executor.submit(() -> {
+                await(start);
+                for (int index = 0; index < 25_000; index++) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    DiscordLocalizationService.replaceSnapshotForTesting((index & 1) == 0 ? second : first);
+                }
+            });
+            Future<?> reader = executor.submit(() -> {
+                await(start);
+                for (int index = 0; index < 25_000; index++) {
+                    String rendered = DiscordLocalizationService.render(nested);
+                    if (!completeResults.contains(rendered)) {
+                        throw new AssertionError("Observed a mixed translation snapshot: " + rendered);
+                    }
+                }
+            });
+
+            start.countDown();
+            writer.get(10, TimeUnit.SECONDS);
+            reader.get(10, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+            DiscordLocalizationService.replaceSnapshotForTesting(previous);
+        }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted while waiting for atomic snapshot test", exception);
+        }
     }
 }

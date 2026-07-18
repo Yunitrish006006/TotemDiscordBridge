@@ -8,6 +8,7 @@ import com.adaptor.deadrecall.block.ModBlocks;
 import com.adaptor.deadrecall.block.entity.ModBlockEntities;
 import com.adaptor.deadrecall.effect.ModMobEffects;
 import com.adaptor.deadrecall.discord.DiscordEventNotifications;
+import com.adaptor.deadrecall.discord.DiscordLocalizationService;
 import com.adaptor.deadrecall.item.ModItemGroups;
 import com.adaptor.deadrecall.item.ModItems;
 import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
@@ -121,6 +122,7 @@ public class Deadrecall implements ModInitializer {
         ModRecipes.registerModRecipes();
 
         // 初始化 Discord 橋接
+        DiscordLocalizationService.registerReloadListener();
         DiscordBridge.init(FabricLoader.getInstance().getConfigDir());
 
         // 註冊自定義封包

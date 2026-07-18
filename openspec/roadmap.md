@@ -78,7 +78,7 @@
 - ItemStack 自訂資料處理。
 - OpenSpec 銅傀儡文件。
 - Discord Bridge OpenSpec、玩家／管理／公開事件轉播、健康告警及伺服器狀態 Bot Token 頻道路由修正。
-- Discord 固定繁中本地化已涵蓋 advancement、村民、死亡 template、Boss／實體名稱、raid 結果與 difficulty；custom literal、missing-key 節流、exactly-once payload 及 Worker 503 隔離已自動驗證，runtime resource reload 留待後續。
+- Discord 固定繁中本地化已涵蓋 advancement、村民、死亡 template、Boss／實體名稱、raid 結果與 difficulty；custom literal、missing-key 節流、exactly-once payload、Worker 503 隔離、Server Data runtime reload 及原子 snapshot 替換已自動驗證。
 - 講台替代配方已完成：4 個任意木半磚＋1 本書；RecipeManager 已驗證橡木、竹、緋紅蕈木、扭曲蕈木與混合半磚，講台書本／Menu／Comparator／兩 tick 紅石脈衝及村民圖書管理員 POI 均通過 Server GameTest。
 - 混凝土粉末掉落物水中硬化核心：16 色映射、Server-side 同一 ItemEntity 轉換、無世界全量掃描、Java 25 build 與 Dedicated Server 啟動已完成。
 - Fabric Loom Server GameTest 基礎：獨立 `gametest` source set、測試模組 entrypoint、`runGameTest` 自動接入 `build`，並保留失敗報告 artifact。

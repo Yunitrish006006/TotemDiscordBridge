@@ -9,7 +9,7 @@ DeadRecall 的 Discord-facing Minecraft 系統事件固定使用繁體中文（`
 - Dedicated Server 作業系統語系。
 - Discord Worker 或 Bot 的翻譯功能。
 
-Minecraft 26.2 的純 Dedicated Server runtime 不提供完整 Client `zh_tw.json`。因此 DeadRecall 內建與目前 Minecraft 版本鎖定的 Discord 專用翻譯子集，並在 Server 啟動後以 immutable snapshot 使用。
+Minecraft 26.2 的純 Dedicated Server runtime 不提供完整 Client `zh_tw.json`。因此 DeadRecall 內建與目前 Minecraft 版本鎖定的 Discord 專用翻譯子集，並以 immutable snapshot 使用。伺服器資料包可以覆寫指定 key；啟動與 `/reload` 都會原子替換完整 snapshot。
 
 ## 已中文化事件
 
@@ -85,7 +85,24 @@ Fallback 不會建立第二筆 Discord 事件。
 
 ## 翻譯資源更新
 
-目前 translation snapshot 與 Minecraft 26.2 鎖定，隨 DeadRecall 版本發布更新。Runtime resource reload 仍為 OpenSpec 後續項目。
+內建 translation snapshot 與 Minecraft 26.2 鎖定，仍隨 DeadRecall 版本發布更新。管理員可在資料包加入任意 `.json`：
+
+```text
+data/deadrecall/deadrecall/discord_zh_tw/custom.json
+```
+
+內容是 translation key 到繁中 template 的 JSON object，例如：
+
+```json
+{
+  "entity.minecraft.zombie": "自訂殭屍名稱",
+  "options.difficulty.hard": "自訂困難"
+}
+```
+
+啟用資料包後執行 Minecraft 標準 `/reload`。DeadRecall 會先載入完整 bundled fallback，再合併資料包覆寫，完成後一次替換 snapshot；正在格式化的單筆 Discord 訊息只會使用完整舊版或完整新版，不會混合兩者。
+
+損壞或非 JSON object 的個別檔案會被記錄並略過。移除資料包覆寫後再次 `/reload`，對應 key 會回到 bundled 值。`/discordbridge reload` 只重新讀取 Bridge 設定，不重新載入資料包。
 
 ## 人工驗收
 
@@ -98,3 +115,5 @@ Fallback 不會建立第二筆 Discord 事件。
 7. 以 Vanilla 生物及有 custom item 名稱的武器觸發死亡訊息，確認 template／實體中文化且 literal 名稱未變。
 8. 驗證終界龍或凋零、自訂 Boss 名稱、raid 勝敗及四種 difficulty 顯示。
 9. 讓測試 Worker 回傳 503，確認 Server 遊戲事件正常完成且錯誤只記錄於 Discord transport。
+10. 加入覆寫 `entity.minecraft.zombie` 的測試資料包並執行 `/reload`，確認新死亡訊息立即使用覆寫值。
+11. 移除覆寫並再次 `/reload`，確認值回到內建「殭屍」。

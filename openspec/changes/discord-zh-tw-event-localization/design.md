@@ -21,7 +21,15 @@ assets/minecraft/lang/zh_tw.json
 assets/deadrecall/lang/discord_zh_tw/*.json
 ```
 
-各檔案在 class initialization 時合併，並以 `Map.copyOf` 發布 immutable snapshot。第一階段不支援 runtime resource reload；翻譯更新隨 DeadRecall 版本發布。
+各檔案在 class initialization 時合併為 bundled fallback。Server Data reload listener 另讀取：
+
+```text
+data/deadrecall/deadrecall/discord_zh_tw/*.json
+```
+
+每次啟動或 `/reload` 都先以 bundled fallback 建立完整 candidate，再依 resource identifier 的穩定順序合併 datapack 覆寫，最後以單次 volatile reference write 發布 `Map.copyOf` immutable snapshot。讀取中的 Component render 先擷取同一份 snapshot reference，包含巢狀參數與 sibling 都不會混用 reload 前後的翻譯。
+
+單一損壞的 JSON resource 只會被忽略；若 resource enumeration 本身失敗則保留目前 snapshot。成功發布新 snapshot 時清除 missing-key warning 去重集合，讓新增／移除的 key 以新版本重新判定。
 
 Phase 2 將 Minecraft 26.2 的 death template 與 entity name 子集合併到同一 snapshot。Missing key 只會依 key 記錄一次 warning，且單次程序最多記錄 128 種，避免 datapack 或版本差異造成 log flood。
 
@@ -88,8 +96,8 @@ Resolver 支援：
 
 ## Phasing
 
-Phase 1 完成 advancement 與村民中文化；Phase 2 已完成死亡訊息、Boss／實體名稱、raid result 與 difficulty，全部沿用同一 service。Runtime resource reload 保留為後續獨立工作。
+Phase 1 完成 advancement 與村民中文化；Phase 2 完成死亡訊息、Boss／實體名稱、raid result 與 difficulty；Phase 3 完成 Server Data runtime resource reload、bundled fallback 及原子 snapshot 替換，全部沿用同一 service。
 
 ## Tests
 
-JUnit 驗證 title、frame type、nested literal、fallback、村民 profession／level 與 exactly-once payload。Dedicated Server GameTest 驗證 bundled snapshot 可載入，且 advancement／村民各產生一筆 localized payload。完整 CI 仍包含 Server GameTests 與兩套 restart probes。
+JUnit 驗證 title、frame type、nested literal、fallback、村民 profession／level、exactly-once payload，以及 reload 與 Component render 併發時只會看到完整的新或舊 snapshot。Dedicated Server GameTest 驗證 bundled snapshot、datapack override 與真實 resource reload，且 advancement／村民各產生一筆 localized payload。完整 CI 仍包含 Server GameTests 與兩套 restart probes。
