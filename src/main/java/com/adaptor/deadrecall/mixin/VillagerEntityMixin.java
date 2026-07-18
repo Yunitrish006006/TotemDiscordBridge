@@ -1,7 +1,6 @@
 package com.adaptor.deadrecall.mixin;
 
-import com.adaptor.deadrecall.DiscordBridge;
-import com.adaptor.deadrecall.discord.DiscordEventFormatter;
+import com.adaptor.deadrecall.discord.DiscordEventNotifications;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.npc.villager.Villager;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,13 +37,12 @@ public abstract class VillagerEntityMixin {
                     .unwrapKey()
                     .map(key -> key.identifier().getPath())
                     .orElse("none");
-            String message = DiscordEventFormatter.villagerLevelUpMessage(
+            DiscordEventNotifications.villagerLevelUp(
                     customName,
                     professionPath,
                     previousLevel,
                     currentLevel
             );
-            DiscordBridge.sendMinecraftEvent("villager_level_up", "系統", message);
         }
     }
 }

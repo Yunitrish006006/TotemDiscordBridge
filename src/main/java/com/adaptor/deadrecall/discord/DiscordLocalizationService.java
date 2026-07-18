@@ -13,8 +13,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,6 +24,7 @@ public final class DiscordLocalizationService {
     private static final List<String> BUNDLED_TABLES = List.of(
             "/assets/deadrecall/lang/discord_zh_tw/adventure.json",
             "/assets/deadrecall/lang/discord_zh_tw/end.json",
+            "/assets/deadrecall/lang/discord_zh_tw/events.json",
             "/assets/deadrecall/lang/discord_zh_tw/husbandry.json",
             "/assets/deadrecall/lang/discord_zh_tw/nether.json",
             "/assets/deadrecall/lang/discord_zh_tw/story.json",
@@ -29,6 +32,8 @@ public final class DiscordLocalizationService {
     );
     private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s|%%");
     private static final Map<String, String> TRANSLATIONS = loadBundledTranslations();
+    private static final int MAX_MISSING_KEY_WARNINGS = 128;
+    private static final Set<String> WARNED_MISSING_KEYS = new LinkedHashSet<>();
 
     private DiscordLocalizationService() {
     }
@@ -49,7 +54,11 @@ public final class DiscordLocalizationService {
 
     public static String translate(String key) {
         String translated = TRANSLATIONS.get(key);
-        return translated == null ? safeFallback(key) : translated;
+        if (translated != null) {
+            return translated;
+        }
+        warnMissingKey(key);
+        return safeFallback(key);
     }
 
     public static int translationCount() {
@@ -77,6 +86,7 @@ public final class DiscordLocalizationService {
     private static String renderTranslatable(TranslatableContents contents) {
         String template = TRANSLATIONS.get(contents.getKey());
         if (template == null) {
+            warnMissingKey(contents.getKey());
             return safeFallback(contents.getKey());
         }
 
@@ -134,6 +144,17 @@ public final class DiscordLocalizationService {
             return "死亡訊息";
         }
         return "未知訊息";
+    }
+
+    private static synchronized void warnMissingKey(String key) {
+        if (key == null
+                || key.isBlank()
+                || WARNED_MISSING_KEYS.contains(key)
+                || WARNED_MISSING_KEYS.size() >= MAX_MISSING_KEY_WARNINGS) {
+            return;
+        }
+        WARNED_MISSING_KEYS.add(key);
+        Deadrecall.LOGGER.warn("[DiscordBridge] zh_tw 翻譯缺少 key {}，使用安全 fallback", key);
     }
 
     private static Map<String, String> loadBundledTranslations() {

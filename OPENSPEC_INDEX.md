@@ -38,7 +38,7 @@
 - [`openspec/specs/discord-bridge/spec.md`](openspec/specs/discord-bridge/spec.md)
 - [`openspec/changes/discord-zh-tw-event-localization/`](openspec/changes/discord-zh-tw-event-localization/)
 
-涵蓋 Minecraft 聊天、玩家生命週期、死亡背包、Space Unit、管理稽核、健康告警、Boss／raid、村民升級與伺服器狀態通知。待實作的 `discord-zh-tw-event-localization` change 統一處理 advancement、村民、死亡、Boss 與其他 Minecraft 系統 Component 的繁體中文解析、custom text 保留及安全 fallback。
+涵蓋 Minecraft 聊天、玩家生命週期、死亡背包、Space Unit、管理稽核、健康告警、Boss／raid、村民升級與伺服器狀態通知。`discord-zh-tw-event-localization` 已統一處理 advancement、村民、死亡、Boss／實體、raid 與 difficulty 的繁體中文解析、custom text 保留、安全 fallback、missing-key 節流及 Worker 失敗隔離；runtime resource reload 仍為後續項目。
 
 ## Totem Remnant / Offline Player Body
 
