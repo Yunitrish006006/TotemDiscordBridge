@@ -3,6 +3,7 @@
   "discord.deadrecall.advancement.goal": "目標",
   "discord.deadrecall.advancement.challenge": "挑戰",
   "discord.deadrecall.advancement.unknown": "未知進度",
+  "discord.deadrecall.test.nested": "%1$s 使用 %2$s",
   "entity.minecraft.villager": "村民",
   "entity.minecraft.villager.armorer": "製甲師",
   "entity.minecraft.villager.butcher": "屠夫",
