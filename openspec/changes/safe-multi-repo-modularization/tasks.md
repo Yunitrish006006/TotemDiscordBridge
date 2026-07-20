@@ -12,7 +12,7 @@
 ## 1. Internal boundaries inside DeadRecall
 
 - [x] 1.1 Split the server initializer into owner-specific bootstrap classes without changing registration order or behavior.
-- [ ] 1.2 Split client initialization by feature ownership.
+- [x] 1.2 Split client initialization by feature ownership.
 - [ ] 1.3 Split Payload type/receiver registration by feature ownership.
 - [ ] 1.4 Split Server and Client Mixin configs by future module ownership while keeping one artifact.
 - [ ] 1.5 Split shared registry holders and resource generation into owner-specific registration classes.
