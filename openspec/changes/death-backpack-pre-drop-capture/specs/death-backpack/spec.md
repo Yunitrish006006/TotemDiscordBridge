@@ -11,7 +11,7 @@ Authoritative sources SHALL include vanilla Inventory／Equipment, active carrie
 #### Scenario: Normal capture
 
 - **GIVEN** eligible stacks exist in authoritative player-owned sources
-- **WHEN** death processing reaches `Inventory.dropAll()`
+- **WHEN** death processing enters `Player.dropEquipment(ServerLevel)` before vanilla or addon drops
 - **THEN** those stacks SHALL be copied into one death backpack
 - **AND** count and Data Components SHALL be preserved
 - **AND** committed sources SHALL not emit duplicate world drops

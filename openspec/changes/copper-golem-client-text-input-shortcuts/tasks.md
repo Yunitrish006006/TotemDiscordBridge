@@ -12,7 +12,7 @@
 
 - [x] 2.1 Java 25 編譯 Client source 與 Mixin 成功。
 - [x] 2.2 完整 Fabric Server GameTests 通過。
-- [ ] 2.3 死亡背包與 Copper Golem 三階段 restart probes 通過最新文件 head。
+- [x] 2.3 死亡背包與 Copper Golem 三階段 restart probes 通過最新文件 head。
 
 ## 3. Manual client regression
 

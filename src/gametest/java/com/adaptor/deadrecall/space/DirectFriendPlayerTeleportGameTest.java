@@ -1,6 +1,5 @@
 package com.adaptor.deadrecall.space;
 
-import com.adaptor.deadrecall.mixin.SpaceUnitHandlerRefreshMixin;
 import com.adaptor.deadrecall.mixin.SpaceUnitTeleportSessionAccessor;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -8,6 +7,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.item.ItemStack;
@@ -15,6 +15,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -37,12 +38,7 @@ public final class DirectFriendPlayerTeleportGameTest {
             makeFriends(helper, requester, target);
             requireOnline(helper, requester, target);
 
-            SpaceUnitHandler.startTeleport(
-                    requester,
-                    SpaceUnitHandler.SOURCE_TYPE_PLAYER,
-                    requester.getUUID(),
-                    target.getUUID()
-            );
+            startPlayerTeleport(requester, target);
 
             Object session = sessions().get(requester.getUUID());
             require(helper, session instanceof SpaceUnitTeleportSessionAccessor,
@@ -66,31 +62,16 @@ public final class DirectFriendPlayerTeleportGameTest {
             preparePlayer(target, true);
             requireOnline(helper, requester, target);
 
-            SpaceUnitHandler.startTeleport(
-                    requester,
-                    SpaceUnitHandler.SOURCE_TYPE_PLAYER,
-                    requester.getUUID(),
-                    target.getUUID()
-            );
+            startPlayerTeleport(requester, target);
             require(helper, !sessions().containsKey(requester.getUUID()),
                     "A non-friend PLAYER target created a teleport session");
 
             friendData(helper).inviteOrAccept(requester.getUUID(), target.getUUID());
-            SpaceUnitHandler.startTeleport(
-                    requester,
-                    SpaceUnitHandler.SOURCE_TYPE_PLAYER,
-                    requester.getUUID(),
-                    target.getUUID()
-            );
+            startPlayerTeleport(requester, target);
             require(helper, !sessions().containsKey(requester.getUUID()),
                     "A one-way pending friend invite created a teleport session");
 
-            SpaceUnitHandler.startTeleport(
-                    requester,
-                    SpaceUnitHandler.SOURCE_TYPE_PLAYER,
-                    requester.getUUID(),
-                    requester.getUUID()
-            );
+            startPlayerTeleport(requester, requester);
             require(helper, !sessions().containsKey(requester.getUUID()),
                     "A player created a PLAYER teleport session targeting themselves");
             helper.succeed();
@@ -111,12 +92,7 @@ public final class DirectFriendPlayerTeleportGameTest {
         makeFriends(helper, requester, target);
         requireOnline(helper, requester, target);
 
-        SpaceUnitHandler.startTeleport(
-                requester,
-                SpaceUnitHandler.SOURCE_TYPE_PLAYER,
-                requester.getUUID(),
-                target.getUUID()
-        );
+        startPlayerTeleport(requester, target);
         require(helper, sessions().containsKey(requester.getUUID()),
                 "Direct friend session did not start before latest-position regression");
 
@@ -206,6 +182,7 @@ public final class DirectFriendPlayerTeleportGameTest {
             requireOnline(helper, requester, target);
             startPlayerTeleport(requester, target);
 
+            target.setHealth(0.0F);
             target.die(helper.getLevel().damageSources().generic());
             SpaceUnitHandler.tickTeleportSessions(helper.getLevel().getServer());
 
@@ -291,6 +268,12 @@ public final class DirectFriendPlayerTeleportGameTest {
     }
 
     private static void startPlayerTeleport(ServerPlayer requester, ServerPlayer target) {
+        SpaceUnitHandler.establishInterfaceContext(
+                requester,
+                InteractionHand.MAIN_HAND,
+                SpaceUnitHandler.SOURCE_TYPE_PLAYER,
+                requester.getUUID()
+        ).orElseThrow(() -> new IllegalStateException("Could not establish compass interface context"));
         SpaceUnitHandler.startTeleport(
                 requester,
                 SpaceUnitHandler.SOURCE_TYPE_PLAYER,
@@ -343,7 +326,15 @@ public final class DirectFriendPlayerTeleportGameTest {
     }
 
     private static Map<UUID, Object> sessions() {
-        return SpaceUnitHandlerRefreshMixin.deadrecall$getTeleportSessions();
+        try {
+            Field field = SpaceUnitHandler.class.getDeclaredField("teleportSessions");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<UUID, Object> sessions = (Map<UUID, Object>) field.get(null);
+            return sessions;
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Could not inspect active teleport sessions", exception);
+        }
     }
 
     private static void requireOnline(GameTestHelper helper, ServerPlayer... players) {
@@ -358,6 +349,7 @@ public final class DirectFriendPlayerTeleportGameTest {
         DeadRecallFriendSavedData data = friendData(helper);
         for (ServerPlayer player : players) {
             sessions().remove(player.getUUID());
+            SpaceUnitHandler.clearInterfaceContext(player.getUUID());
         }
         for (int first = 0; first < players.length; first++) {
             for (int second = first + 1; second < players.length; second++) {

@@ -1,19 +1,9 @@
 package com.adaptor.deadrecall;
 
-import com.adaptor.deadrecall.alchemy.AlchemyHandler;
-import com.adaptor.deadrecall.alchemy.CherryBrewInteractions;
-import com.adaptor.deadrecall.alchemy.PigManureInteractions;
-import com.adaptor.deadrecall.advancement.ModCriteriaTriggers;
-import com.adaptor.deadrecall.block.ModBlocks;
-import com.adaptor.deadrecall.block.entity.ModBlockEntities;
-import com.adaptor.deadrecall.effect.ModMobEffects;
+import com.adaptor.deadrecall.bootstrap.DeadRecallServerBootstrap;
 import com.adaptor.deadrecall.discord.DiscordEventNotifications;
-import com.adaptor.deadrecall.discord.DiscordLocalizationService;
-import com.adaptor.deadrecall.item.ModItemGroups;
-import com.adaptor.deadrecall.item.ModItems;
 import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
 import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
-import com.adaptor.deadrecall.menu.ModMenus;
 import com.adaptor.deadrecall.network.CalibrateSpaceUnitPayload;
 import com.adaptor.deadrecall.network.ConfirmSpaceUnitRegistrationPayload;
 import com.adaptor.deadrecall.network.CopperGolemOperationPayload;
@@ -43,8 +33,6 @@ import com.adaptor.deadrecall.network.UpdateSpaceUnitVisibilityPayload;
 import com.adaptor.deadrecall.network.UpdateCopperGolemBindingCachePayload;
 import com.adaptor.deadrecall.network.UpdateCopperGolemBindingLlmPayload;
 import com.adaptor.deadrecall.network.UpdateCopperGolemGatheringLlmPayload;
-import com.adaptor.deadrecall.recipe.ModRecipes;
-import com.adaptor.deadrecall.space.DistributedSpawnHandler;
 import com.adaptor.deadrecall.space.SpaceUnitHandler;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -105,25 +93,7 @@ public class Deadrecall implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // 註冊物品與方塊
-        ModBlocks.registerModBlocks();
-        ModBlockEntities.registerModBlockEntities();
-        ModMobEffects.registerModEffects();
-        ModCriteriaTriggers.registerModCriteriaTriggers();
-        ModMenus.registerModMenus();
-        ModItems.registerModItems();
-        ModItemGroups.registerModItemGroups();
-        AlchemyHandler.register();
-        CherryBrewInteractions.register();
-        PigManureInteractions.register();
-        CopperGolemWrenchHandler.register();
-        DistributedSpawnHandler.register();
-        SpaceUnitHandler.register();
-        ModRecipes.registerModRecipes();
-
-        // 初始化 Discord 橋接
-        DiscordLocalizationService.registerReloadListener();
-        DiscordBridge.init(FabricLoader.getInstance().getConfigDir());
+        DeadRecallServerBootstrap.register(FabricLoader.getInstance().getConfigDir());
 
         // 註冊自定義封包
         PayloadTypeRegistry.serverboundPlay().register(

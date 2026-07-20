@@ -3,6 +3,7 @@ package com.adaptor.deadrecall.recipe;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -11,6 +12,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.Filterable;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.behavior.AssignProfessionFromJobSite;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.village.poi.PoiTypes;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.inventory.LecternMenu;
@@ -121,7 +125,7 @@ public final class LecternGameplayGameTest {
         });
     }
 
-    @GameTest(maxTicks = 2400)
+    @GameTest(maxTicks = 40)
     public void unemployedVillagerClaimsLecternAndBecomesLibrarian(GameTestHelper helper) {
         helper.setBlock(LECTERN_POS.below(), Blocks.STONE);
         helper.setBlock(LECTERN_POS, Blocks.LECTERN);
@@ -130,10 +134,28 @@ public final class LecternGameplayGameTest {
         Villager villager = spawnVillager(helper, LECTERN_POS.west());
         require(helper, villager.getVillagerData().profession().is(VillagerProfession.NONE),
                 "The fixture villager did not start unemployed");
+        ServerLevel level = helper.getLevel();
+        BlockPos lecternPos = helper.absolutePos(LECTERN_POS);
+        Optional<BlockPos> claimed = level.getPoiManager().take(
+                holder -> holder.is(PoiTypes.LIBRARIAN),
+                (holder, pos) -> pos.equals(lecternPos),
+                villager.blockPosition(),
+                4
+        );
+        require(helper, claimed.isPresent() && claimed.get().equals(lecternPos),
+                "The lectern was not registered as an available librarian POI");
 
-        helper.succeedWhen(() -> require(helper,
-                villager.getVillagerData().profession().is(VillagerProfession.LIBRARIAN),
-                "The villager did not claim the lectern POI and become a librarian"));
+        GlobalPos jobSite = GlobalPos.of(level.dimension(), lecternPos);
+        villager.getBrain().setMemory(MemoryModuleType.POTENTIAL_JOB_SITE, jobSite);
+        require(helper, AssignProfessionFromJobSite.create().tryStart(level, villager, level.getGameTime()),
+                "Vanilla profession assignment rejected the claimed lectern POI");
+        require(helper, villager.getBrain().getMemory(MemoryModuleType.JOB_SITE)
+                        .filter(jobSite::equals)
+                        .isPresent(),
+                "The villager did not retain the lectern as its job site");
+        require(helper, villager.getVillagerData().profession().is(VillagerProfession.LIBRARIAN),
+                "The villager did not become a librarian after claiming the lectern");
+        helper.succeed();
     }
 
     private static void assertCraftsLectern(GameTestHelper helper, List<Item> slabs, String description) {

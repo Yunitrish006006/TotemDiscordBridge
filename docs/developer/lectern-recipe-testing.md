@@ -41,9 +41,9 @@ src/gametest/java/com/adaptor/deadrecall/recipe/LecternGameplayGameTest.java
 
 ## 圖書管理員 POI
 
-`unemployedVillagerClaimsLecternAndBecomesLibrarian` 生成未就業村民與真實講台，等待 Vanilla Brain／POI 流程自然認領工作站。測試只有在村民 profession holder 變成 `VillagerProfession.LIBRARIAN` 時才成功。
+`unemployedVillagerClaimsLecternAndBecomesLibrarian` 生成未就業村民與真實講台，先要求 `PoiManager.take` 能以 `PoiTypes.LIBRARIAN` 認領該座標，再把取得的 `GlobalPos` 寫入 `POTENTIAL_JOB_SITE`，最後執行 Vanilla `AssignProfessionFromJobSite` Brain 行為。這避免依賴村民隨機 AI 排程造成高負載 suite 超時，同時保留真實 POI 類型、Memory transition 與職業解析。
 
-此測試沒有直接呼叫 `setVillagerData`，因此可驗證講台仍被 Vanilla 登錄為圖書管理員工作站，而不是只檢查靜態常數。
+此測試沒有直接呼叫 `setVillagerData`；它要求 `POTENTIAL_JOB_SITE` 轉成相同座標的 `JOB_SITE`，且 profession holder 由 Vanilla 行為變成 `VillagerProfession.LIBRARIAN`。因此仍可驗證講台被登錄為圖書管理員工作站，而不是只檢查靜態常數。
 
 ## 執行
 
