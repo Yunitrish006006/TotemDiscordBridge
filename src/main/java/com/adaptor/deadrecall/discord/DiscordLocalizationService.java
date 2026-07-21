@@ -1,6 +1,6 @@
 package com.adaptor.deadrecall.discord;
 
-import com.adaptor.deadrecall.Deadrecall;
+import static dev.totem.discord.TotemDiscordBridge.LOGGER;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -68,7 +68,7 @@ public final class DiscordLocalizationService {
             appendComponent(result, component, translations);
             return normalize(result.toString());
         } catch (RuntimeException exception) {
-            Deadrecall.LOGGER.warn("[DiscordBridge] 無法解析 Discord zh_tw Component", exception);
+            LOGGER.warn("[DiscordBridge] 無法解析 Discord zh_tw Component", exception);
             return "未知訊息";
         }
     }
@@ -184,7 +184,7 @@ public final class DiscordLocalizationService {
             return;
         }
         WARNED_MISSING_KEYS.add(key);
-        Deadrecall.LOGGER.warn("[DiscordBridge] zh_tw 翻譯缺少 key {}，使用安全 fallback", key);
+        LOGGER.warn("[DiscordBridge] zh_tw 翻譯缺少 key {}，使用安全 fallback", key);
     }
 
     private static void reloadFromServerData(ResourceManager resourceManager) {
@@ -202,7 +202,7 @@ public final class DiscordLocalizationService {
                 try (Reader reader = entry.getValue().openAsReader()) {
                     overrideCount += mergeTranslationTable(reader, candidate);
                 } catch (Exception exception) {
-                    Deadrecall.LOGGER.warn(
+                    LOGGER.warn(
                             "[DiscordBridge] 無法載入 zh_tw data resource {}",
                             entry.getKey(),
                             exception
@@ -210,12 +210,12 @@ public final class DiscordLocalizationService {
                 }
             }
         } catch (RuntimeException exception) {
-            Deadrecall.LOGGER.warn("[DiscordBridge] 無法列舉 zh_tw data resources，保留目前 snapshot", exception);
+            LOGGER.warn("[DiscordBridge] 無法列舉 zh_tw data resources，保留目前 snapshot", exception);
             return;
         }
 
         publishSnapshot(candidate);
-        Deadrecall.LOGGER.info(
+        LOGGER.info(
                 "[DiscordBridge] 已原子載入 {} 個 zh_tw 翻譯（{} 個 data resource key 覆寫）",
                 candidate.size(),
                 overrideCount
@@ -227,14 +227,14 @@ public final class DiscordLocalizationService {
         for (String path : BUNDLED_TABLES) {
             try (InputStream stream = DiscordLocalizationService.class.getResourceAsStream(path)) {
                 if (stream == null) {
-                    Deadrecall.LOGGER.warn("[DiscordBridge] 缺少 zh_tw 翻譯資源 {}", path);
+                    LOGGER.warn("[DiscordBridge] 缺少 zh_tw 翻譯資源 {}", path);
                     continue;
                 }
                 try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
                     mergeTranslationTable(reader, translations);
                 }
             } catch (Exception exception) {
-                Deadrecall.LOGGER.warn("[DiscordBridge] 無法載入 zh_tw 翻譯資源 {}", path, exception);
+                LOGGER.warn("[DiscordBridge] 無法載入 zh_tw 翻譯資源 {}", path, exception);
             }
         }
         return Map.copyOf(translations);
