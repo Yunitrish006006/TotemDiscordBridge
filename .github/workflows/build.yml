@@ -24,6 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p run/server
           printf 'eula=true\n' > run/server/eula.txt
           set +e
           timeout --signal=TERM --kill-after=15s 75s ./gradlew runServer --no-daemon --stacktrace > discord-server.log 2>&1
