@@ -9,9 +9,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Yunitrish006006/TotemCore
+          path: TotemCore
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
       - run: chmod +x gradlew
       - run: ./gradlew test --no-daemon --stacktrace
+      - name: Verify Core + Discord Dedicated Server startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x TotemCore/gradlew
+          (cd TotemCore && ./gradlew build --no-daemon --stacktrace)
+          mkdir -p run/server/mods
+          core_jar="$(find TotemCore/build/libs -maxdepth 1 -name 'totem-core-*.jar' ! -name '*-sources.jar' -print -quit)"
+          test -n "${core_jar}"
+          cp "${core_jar}" run/server/mods/
+          printf 'eula=true\n' > run/server/eula.txt
+          set +e
+          timeout --signal=TERM --kill-after=15s 75s ./gradlew runServer --no-daemon --stacktrace > discord-server.log 2>&1
+          status=$?
+          set -e
+          test "${status}" -eq 124
+          grep -F 'TotemCore API 1.0 initialized without gameplay registration' discord-server.log
+          grep -F 'TotemDiscordBridge initialized' discord-server.log
+          grep -F 'Done (' discord-server.log
