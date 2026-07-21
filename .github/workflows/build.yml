@@ -13,6 +13,7 @@ jobs:
         with:
           repository: Yunitrish006006/TotemCore
           path: TotemCore
+          ref: 28d96df
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
