@@ -34,6 +34,10 @@ jobs:
           timeout --signal=TERM --kill-after=15s 75s ./gradlew runServer --no-daemon --stacktrace > discord-server.log 2>&1
           status=$?
           set -e
+          if [ "${status}" -ne 124 ]; then
+            cat discord-server.log
+            exit "${status}"
+          fi
           test "${status}" -eq 124
           grep -F 'TotemCore API 1.0 initialized without gameplay registration' discord-server.log
           grep -F 'TotemDiscordBridge initialized' discord-server.log
