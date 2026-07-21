@@ -2,8 +2,20 @@ plugins { id 'fabric-loom' version '1.17.12'; id 'maven-publish' }
 version = project.mod_version
 group = project.maven_group
 base { archivesName = project.archives_base_name }
+sourceSets {
+    core {
+        java.srcDir("TotemCore/src/main/java")
+        resources.srcDir("TotemCore/src/main/resources")
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
 loom {
-    mods { 'totem-discord-bridge' { sourceSet sourceSets.main } }
+    mods {
+        'totem-core' { sourceSet sourceSets.core }
+        'totem-discord-bridge' { sourceSet sourceSets.main }
+    }
     runs {
         server {
             server()
@@ -82,6 +94,7 @@ tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
 
 tasks.matching { task -> task.name in ["runClient", "runServer"] }.configureEach {
     dependsOn("normalizeFabricApiTweakersForNamedDevRuntime")
+    dependsOn("compileCoreJava", "processCoreResources")
 }
 
 java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_25; targetCompatibility = JavaVersion.VERSION_25 }

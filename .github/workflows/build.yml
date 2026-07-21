@@ -24,12 +24,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x TotemCore/gradlew
-          (cd TotemCore && ./gradlew build --no-daemon --stacktrace)
-          mkdir -p run/server/mods
-          core_jar="$(find TotemCore/build/libs -maxdepth 1 -name 'totem-core-*.jar' ! -name '*-sources.jar' -print -quit)"
-          test -n "${core_jar}"
-          cp "${core_jar}" run/server/mods/
           printf 'eula=true\n' > run/server/eula.txt
           set +e
           timeout --signal=TERM --kill-after=15s 75s ./gradlew runServer --no-daemon --stacktrace > discord-server.log 2>&1
