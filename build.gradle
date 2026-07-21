@@ -17,8 +17,9 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "org.relativitymc:modern-yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    // Localization's Fabric resource integration is compiled here; the first
+    // standalone server slice does not load it at startup.
     compileOnly "net.fabricmc.fabric-api:fabric-api:0.154.2+26.2"
-    runtimeOnly "net.fabricmc.fabric-api:fabric-api:0.154.2+26.2"
 }
 
 tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
