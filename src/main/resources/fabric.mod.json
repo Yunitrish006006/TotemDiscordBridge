@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "totem-discord-bridge",
+  "version": "${version}",
+  "name": "TotemDiscordBridge",
+  "environment": "*",
+  "entrypoints": { "main": ["dev.totem.discord.TotemDiscordBridge"] },
+  "depends": { "fabricloader": ">=0.19.3", "minecraft": "~26.2", "java": ">=25" }
+}
