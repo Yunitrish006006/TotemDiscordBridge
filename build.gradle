@@ -109,3 +109,10 @@ tasks.named('processResources', ProcessResources) {
         expand(version: project.version)
     }
 }
+
+tasks.named('processCoreResources', ProcessResources) {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand(version: project.version)
+    }
+}

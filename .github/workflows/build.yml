@@ -13,7 +13,7 @@ jobs:
         with:
           repository: Yunitrish006006/TotemCore
           path: TotemCore
-          ref: 28d96df87bdb3eda8ebe576ce36a3c5838be5cd0
+          ref: master
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -24,8 +24,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p run/server
+          mkdir -p run/server/mods
           printf 'eula=true\n' > run/server/eula.txt
+          fabric_api_jar="$(find "$HOME/.gradle/caches/modules-2/files-2.1/net.fabricmc.fabric-api/fabric-api/0.154.2+26.2" -type f -name 'fabric-api-0.154.2+26.2.jar' | head -n 1)"
+          test -n "${fabric_api_jar}"
+          cp "${fabric_api_jar}" run/server/mods/
           set +e
           timeout --signal=TERM --kill-after=15s 75s ./gradlew runServer --no-daemon --stacktrace > discord-server.log 2>&1
           status=$?
