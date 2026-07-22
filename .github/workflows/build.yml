@@ -24,7 +24,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jar_file="build/libs/totem-discord-bridge-0.1.0-SNAPSHOT.jar"
+          version="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          jar_file="build/libs/totem-discord-bridge-${version}.jar"
           test -f "${jar_file}"
           unzip -p "${jar_file}" fabric.mod.json | grep -F 'dev.totem.discord.TotemDiscordBridge'
           unzip -p "${jar_file}" fabric.mod.json | grep -F 'dev.totem.discord.TotemDiscordBridgeClient'
