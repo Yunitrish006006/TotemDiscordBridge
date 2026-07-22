@@ -26,6 +26,7 @@ jobs:
           set -euo pipefail
           mkdir -p run/server/mods
           printf 'eula=true\n' > run/server/eula.txt
+          ./gradlew normalizeFabricApiTweakersForNamedDevRuntime --no-daemon --stacktrace
           fabric_api_jar="$(find "$HOME/.gradle/caches/modules-2/files-2.1/net.fabricmc.fabric-api/fabric-api/0.154.2+26.2" -type f -name 'fabric-api-0.154.2+26.2.jar' | head -n 1)"
           test -n "${fabric_api_jar}"
           cp "${fabric_api_jar}" run/server/mods/
