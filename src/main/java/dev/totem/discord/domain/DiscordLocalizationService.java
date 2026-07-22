@@ -1,4 +1,4 @@
-package com.adaptor.deadrecall.discord;
+package dev.totem.discord.domain;
 
 import static dev.totem.discord.TotemDiscordBridge.LOGGER;
 import com.google.gson.JsonElement;
@@ -282,3 +282,4 @@ public final class DiscordLocalizationService {
         return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }
+

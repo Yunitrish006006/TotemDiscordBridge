@@ -1,4 +1,4 @@
-package com.adaptor.deadrecall.discord;
+package dev.totem.discord.domain;
 
 import java.util.Set;
 
@@ -24,3 +24,4 @@ public final class DiscordTransientNotificationPolicy {
         return isTemporaryEvent(event) ? DELETE_AFTER_SECONDS : 0;
     }
 }
+

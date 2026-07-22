@@ -1,4 +1,4 @@
-package com.adaptor.deadrecall.discord;
+package dev.totem.discord.domain;
 
 public record DiscordEventPayload(String event, String username, String message) {
     public DiscordEventPayload {
@@ -11,3 +11,4 @@ public record DiscordEventPayload(String event, String username, String message)
         return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }
+

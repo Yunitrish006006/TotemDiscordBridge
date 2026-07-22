@@ -1,4 +1,4 @@
-package com.adaptor.deadrecall.discord;
+package dev.totem.discord.domain;
 
 import net.minecraft.network.chat.Component;
 
@@ -93,3 +93,4 @@ public final class DiscordEventFormatter {
         return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }
+
