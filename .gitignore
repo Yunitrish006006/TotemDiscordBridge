@@ -2,3 +2,7 @@
 build/
 run/
 .idea/
+
+# Local dependency clone and manual Dedicated Server verification output.
+TotemCore/
+standalone-verification/
