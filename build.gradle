@@ -2,22 +2,11 @@ plugins { id 'fabric-loom' version '1.17.12'; id 'maven-publish' }
 version = project.mod_version
 group = project.maven_group
 base { archivesName = project.archives_base_name }
-sourceSets {
-    core {
-        java.srcDir("TotemCore/src/main/java")
-        resources.srcDir("TotemCore/src/main/resources")
-        compileClasspath += sourceSets.main.compileClasspath
-        runtimeClasspath += output + compileClasspath
-    }
-    main {
-        compileClasspath += sourceSets.core.output
-        runtimeClasspath += sourceSets.core.output
-    }
-}
+def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
+        .getOrElse('../TotemCore/build/libs/totem-core-0.2.0.jar'))
 
 loom {
     mods {
-        'totem-core' { sourceSet sourceSets.core }
         'totem-discord-bridge' { sourceSet sourceSets.main }
     }
     runs {
@@ -36,6 +25,7 @@ dependencies {
     // Fabric API is a required external mod (declared in fabric.mod.json),
     // rather than a bundled runtime dependency.
     compileOnly "net.fabricmc.fabric-api:fabric-api:0.154.2+26.2"
+    modImplementation files(totemCoreJar)
 }
 
 tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
@@ -98,19 +88,11 @@ tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
 
 tasks.matching { task -> task.name in ["runClient", "runServer"] }.configureEach {
     dependsOn("normalizeFabricApiTweakersForNamedDevRuntime")
-    dependsOn("compileCoreJava", "processCoreResources")
 }
 
 java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_25; targetCompatibility = JavaVersion.VERSION_25 }
 
 tasks.named('processResources', ProcessResources) {
-    inputs.property 'version', project.version
-    filesMatching('fabric.mod.json') {
-        expand(version: project.version)
-    }
-}
-
-tasks.named('processCoreResources', ProcessResources) {
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') {
         expand(version: project.version)
