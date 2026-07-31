@@ -1,6 +1,7 @@
 package dev.totem.discord;
 
 import dev.totem.discord.bootstrap.TotemDiscordBridgeBootstrap;
+import dev.totem.discord.integration.TotemIntegrationEventSubscriber;
 import dev.totem.discord.network.DiscordPayloadRegistration;
 import dev.totem.discord.transport.DiscordTransportService;
 import net.fabricmc.api.ModInitializer;
@@ -18,6 +19,7 @@ public final class TotemDiscordBridge implements ModInitializer {
     @Override
     public void onInitialize() {
         TotemDiscordBridgeBootstrap.register(FabricLoader.getInstance().getConfigDir());
+        TotemIntegrationEventSubscriber.register();
         installLegacyTransportFacade();
         TotemDiscordBridgeBootstrap.registerRuntime();
         DiscordPayloadRegistration.registerServerboundTypes();
