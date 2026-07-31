@@ -3,7 +3,7 @@ version = project.mod_version
 group = project.maven_group
 base { archivesName = project.archives_base_name }
 def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
-        .getOrElse('../TotemCore/build/libs/totem-core-0.3.0.jar'))
+        .getOrElse('../TotemCore/build/libs/totem-core-0.4.0.jar'))
 
 loom {
     mods {

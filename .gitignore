@@ -1,6 +1,7 @@
 .gradle/
 build/
 run/
+logs/
 .idea/
 
 # Local dependency clone and manual Dedicated Server verification output.
