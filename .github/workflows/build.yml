@@ -18,8 +18,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - run: chmod +x gradlew
-      - run: ./gradlew build --no-daemon --stacktrace
+      - run: chmod +x gradlew TotemCore/gradlew
+      - run: ./TotemCore/gradlew -p TotemCore remapJar --no-daemon --stacktrace
+      - name: Build with the checked-out TotemCore artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          totem_core_jar="$(find "${GITHUB_WORKSPACE}/TotemCore/build/libs" \
+            -name 'totem-core-*.jar' ! -name '*-sources.jar' -print -quit)"
+          test -n "${totem_core_jar}"
+          test -f "${totem_core_jar}"
+          ./gradlew -PtotemCoreJar="${totem_core_jar}" build --no-daemon --stacktrace
       - name: Verify standalone Discord distribution layout
         shell: bash
         run: |
