@@ -44,7 +44,7 @@ public final class TotemDiscordBridgeBootstrap {
     }
 
     public static void register(Path configDir) {
-        DiscordLocalizationService.registerReloadListener();
+        DiscordLocalizationService.registerReloadListener(configDir);
         DiscordTransportService.init(configDir);
     }
 
@@ -172,5 +172,4 @@ public final class TotemDiscordBridgeBootstrap {
         }
     }
 }
-
 

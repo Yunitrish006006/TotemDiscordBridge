@@ -8,15 +8,15 @@ TotemDiscordBridge 將 Minecraft 聊天、玩家動態、管理稽核、公開�
 Minecraft Server → TotemDiscordBridge → Worker → Discord
 ```
 
-目前候選版本為 **0.1.2**，精確搭配 TotemCore **0.2.0**。
+目前候選版本為 **0.1.4**，精確搭配 TotemCore **0.4.0**。
 
 ## 安裝
 
 Server 放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.2.0`
-3. TotemDiscordBridge `0.1.2`
+2. TotemCore `0.4.0`
+3. TotemDiscordBridge `0.1.4`
 
 需要遊戲內設定 GUI 的管理員 Client 也必須安裝相同三個 JAR。只用
 設定檔與 Server 指令時，一般玩家 Client 不需要 Bridge。
@@ -26,9 +26,9 @@ Server 放入：
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.2.0` |
+| 必要 Totem 模組 | `totem-core =0.4.0` |
 
-Bridge 不要求 Remnant、Automata 或 Nexus。使用 DeadRecall 2.4.4 整合
+Bridge 不要求 Remnant、Automata 或 Nexus。使用 DeadRecall 2.4.7 整合
 JAR 時不要再安裝獨立 TotemDiscordBridge。
 
 ## 第一次設定
@@ -101,9 +101,15 @@ DeadRecall repository 提供完整的
 - 玩家死亡、Boss 擊殺、進度、Raid 與村民升級。
 - Ban、Pardon、Whitelist、Kick、難度與 Gamerule 管理稽核。
 - Server 開啟／關閉、低 TPS 與恢復通知。
-- 透過選配 adapter 收到的死亡背包與公開 Space Unit 事件。
+- 透過 TotemCore event bus 收到的死亡背包、公開 Space Unit 與功能模組
+  管理稽核事件。
 
-各功能模組不存在時，其選配事件會安全停用。
+Bridge 啟動時會自行註冊 subscriber；各功能模組不存在或沒有發布事件時，
+對應通知會安全停用，不需要 DeadRecall 額外接線。
+
+進度翻譯會讀取所有已載入模組的 `en_us`／`zh_tw` 語言資源。原版繁中
+語言檔不再內嵌於模組；Server 首次載入時會依目前 Minecraft 版本下載並
+驗證 Mojang 官方 `zh_tw` 資產，之後使用版本化快取。
 
 ## 安全注意
 

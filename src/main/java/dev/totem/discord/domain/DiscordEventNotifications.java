@@ -7,7 +7,21 @@ public final class DiscordEventNotifications {
     }
 
     public static void advancement(String playerName, Component title, String frameType) {
-        String message = DiscordEventFormatter.advancementMessage(playerName, title, frameType);
+        advancement(playerName, "", title, frameType);
+    }
+
+    public static void advancement(
+            String playerName,
+            String advancementId,
+            Component title,
+            String frameType
+    ) {
+        String message = DiscordEventFormatter.advancementMessage(
+                playerName,
+                advancementId,
+                title,
+                frameType
+        );
         DiscordEventDispatcher.send("advancement", playerName, message);
     }
 
@@ -61,5 +75,4 @@ public final class DiscordEventNotifications {
         return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }
-
 
