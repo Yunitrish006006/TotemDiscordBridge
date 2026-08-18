@@ -8,15 +8,15 @@ TotemDiscordBridge 將 Minecraft 聊天、玩家動態、管理稽核、公開�
 Minecraft Server → TotemDiscordBridge → Worker → Discord
 ```
 
-目前候選版本為 **0.1.4**，精確搭配 TotemCore **0.4.0**。
+目前候選版本為 **0.1.6**，精確搭配 TotemCore **0.6.0**。
 
 ## 安裝
 
 Server 放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.4.0`
-3. TotemDiscordBridge `0.1.4`
+2. TotemCore `0.6.0`
+3. TotemDiscordBridge `0.1.6`
 
 需要遊戲內設定 GUI 的管理員 Client 也必須安裝相同三個 JAR。只用
 設定檔與 Server 指令時，一般玩家 Client 不需要 Bridge。
@@ -26,9 +26,9 @@ Server 放入：
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.4.0` |
+| 必要 Totem 模組 | `totem-core =0.6.0` |
 
-Bridge 不要求 Remnant、Automata 或 Nexus。使用 DeadRecall 2.4.7 整合
+Bridge 不要求 Remnant、Automata、Nexus 或 Locksmith。使用 DeadRecall 2.4.11 整合
 JAR 時不要再安裝獨立 TotemDiscordBridge。
 
 ## 第一次設定
@@ -64,8 +64,32 @@ config/discord-bridge.json
 | --- | --- |
 | `POST /api/mc/chat` | 聊天、玩家與公開事件 |
 | `POST /api/mc/server/status` | 開服、關服與健康狀態 |
+| `POST /api/mc/presence` | 只更新 Bot 狀態，不建立頻道訊息 |
 
 每個請求都帶 `X-API-Key`；Worker 必須使用與 Server 相同的 secret 驗證。
+
+### 定時刪除政策
+
+刪除決定權只存在於 TotemDiscordBridge 模組。模組會對下列通知附加
+`delete_after_seconds: 600`：
+
+- `player_join`
+- `player_first_join`
+- `player_leave`
+- `death_backpack_created`
+- `death_backpack_recovered`
+- `POST /api/mc/server/status` 產生的狀態通知
+
+Worker 不依事件名稱維護另一份白名單，只驗證並執行模組送出的刪除秒數。
+未帶 `delete_after_seconds` 的聊天、死亡、進度與管理稽核等通知永久保留。
+
+### Bot 在線人數狀態
+
+Bridge 模組決定並送出完整的 `discord_presence` 指令；Worker 只驗證、保存，
+再原樣轉成 Discord Gateway Presence。伺服器在線時顯示
+`目前人數/最大人數 人在線`（例如 `3/20 人在線`），正常關服後顯示
+`伺服器離線`。玩家加入或離開會在該 Server tick 結束後更新一次，並使用
+`POST /api/mc/presence`，不會因此在 Discord 頻道多送狀態訊息。
 
 DeadRecall repository 提供完整的
 [Cloudflare Worker 部署說明](https://github.com/Yunitrish006006/DeadRecall/blob/master/docs/discord/worker.md)。
