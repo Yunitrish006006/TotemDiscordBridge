@@ -3,6 +3,7 @@ package dev.totem.discord.integration;
 import dev.totem.core.api.v1.event.AdminAuditEvent;
 import dev.totem.core.api.v1.event.DeathBackpackCreatedEvent;
 import dev.totem.core.api.v1.event.DeathBackpackRecoveredEvent;
+import dev.totem.core.api.v1.event.LockedContainerNetworkBrokenEvent;
 import dev.totem.core.api.v1.event.SpaceUnitPublicUpdateEvent;
 import dev.totem.core.api.v1.event.TotemEventBus;
 import dev.totem.discord.transport.DiscordTransportService;
@@ -43,6 +44,11 @@ public final class TotemIntegrationEventSubscriber {
             public void adminAudit(String actor, String action, String targetSummary) {
                 DiscordTransportService.sendAdminAction(actor, action, targetSummary);
             }
+
+            @Override
+            public void lockedContainerNetworkBroken(LockedContainerNetworkBrokenEvent event) {
+                DiscordTransportService.sendLockedContainerNetworkBroken(event);
+            }
         });
     }
 
@@ -64,6 +70,15 @@ public final class TotemIntegrationEventSubscriber {
                 AdminAuditEvent.class,
                 event -> sink.adminAudit(event.actor(), event.action(), event.targetSummary())
         ));
+        BoundedEventIdDeduplicator deduplicator = new BoundedEventIdDeduplicator(2_048, 60L * 60L * 1_000L);
+        subscriptions.add(TotemEventBus.subscribe(
+                LockedContainerNetworkBrokenEvent.class,
+                event -> {
+                    if (deduplicator.accept(event.eventId(), System.currentTimeMillis())) {
+                        sink.lockedContainerNetworkBroken(event);
+                    }
+                }
+        ));
         return () -> {
             for (int index = subscriptions.size() - 1; index >= 0; index--) {
                 subscriptions.get(index).close();
@@ -76,5 +91,6 @@ public final class TotemIntegrationEventSubscriber {
         void deathBackpackRecovered(String playerName);
         void spaceUnitPublicUpdate(String actor, String message);
         void adminAudit(String actor, String action, String targetSummary);
+        void lockedContainerNetworkBroken(LockedContainerNetworkBrokenEvent event);
     }
 }

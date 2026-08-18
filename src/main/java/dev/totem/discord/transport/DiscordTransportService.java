@@ -1,6 +1,8 @@
 package dev.totem.discord.transport;
 
+import dev.totem.core.api.v1.event.LockedContainerNetworkBrokenEvent;
 import dev.totem.discord.domain.DiscordEventNotifications;
+import dev.totem.discord.domain.DiscordWorkerPayloadFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -233,13 +235,12 @@ public class DiscordTransportService {
 
         EXECUTOR.submit(() -> {
             try {
-                String json = String.format(
-                        "{\"event\":\"%s\",\"username\":\"%s\",\"message\":\"%s\",\"channels\":%s}",
-                        escapeJson(event),
-                        escapeJson(username),
-                        escapeJson(message),
-                        channelsToJson()
-                );
+                String json = DiscordWorkerPayloadFactory.event(
+                        event,
+                        username,
+                        message,
+                        channelsToJsonArray()
+                ).toString();
 
                 String url = workerUrl + "/api/mc/chat";
                 LOGGER.info("[DiscordTransportService] 發送請求到: {}", url);
@@ -287,27 +288,32 @@ public class DiscordTransportService {
     /**
      * 回報伺服器狀態到 Discord（非同步）
      */
-    public static void sendServerStatus(String status, int playersOnline, int playersMax, String version, double tps) {
+    public static void sendServerStatus(String status, boolean serverOnline, int playersOnline, int playersMax, String version, double tps) {
         if (!enabled) return;
 
-        EXECUTOR.submit(() -> postServerStatus(status, playersOnline, playersMax, version, tps));
+        EXECUTOR.submit(() -> postServerStatus(status, serverOnline, playersOnline, playersMax, version, tps));
     }
 
     /**
      * 回報伺服器狀態到 Discord（同步，供關閉流程使用）
      */
-    public static void sendServerStatusImmediately(String status, int playersOnline, int playersMax, String version, double tps) {
+    public static void sendServerStatusImmediately(String status, boolean serverOnline, int playersOnline, int playersMax, String version, double tps) {
         if (!enabled) return;
 
-        postServerStatus(status, playersOnline, playersMax, version, tps);
+        postServerStatus(status, serverOnline, playersOnline, playersMax, version, tps);
     }
 
-    private static void postServerStatus(String status, int playersOnline, int playersMax, String version, double tps) {
+    private static void postServerStatus(String status, boolean serverOnline, int playersOnline, int playersMax, String version, double tps) {
         try {
-            String json = String.format(Locale.ROOT,
-                    "{\"status\":\"%s\",\"players_online\":%d,\"players_max\":%d,\"version\":\"%s\",\"tps\":%.1f,\"channels\":%s}",
-                    escapeJson(status), playersOnline, playersMax, escapeJson(version), tps, channelsToJson()
-            );
+            String json = DiscordWorkerPayloadFactory.serverStatus(
+                    status,
+                    serverOnline,
+                    playersOnline,
+                    playersMax,
+                    version,
+                    tps,
+                    channelsToJsonArray()
+            ).toString();
 
             String url = workerUrl + "/api/mc/server/status";
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -344,6 +350,49 @@ public class DiscordTransportService {
         } catch (Exception e) {
             recordDeliveryFailure("server_status");
             LOGGER.warn("[DiscordTransportService] 回報狀態失敗: {}", e.getMessage());
+        }
+    }
+
+    /** Updates only the Discord bot presence without creating a channel message. */
+    public static void sendPresence(boolean serverOnline, int playersOnline, int playersMax) {
+        if (!enabled) return;
+        EXECUTOR.submit(() -> postPresence(serverOnline, playersOnline, playersMax));
+    }
+
+    private static void postPresence(boolean serverOnline, int playersOnline, int playersMax) {
+        HttpURLConnection conn = null;
+        try {
+            String json = DiscordWorkerPayloadFactory.presence(serverOnline, playersOnline, playersMax).toString();
+            String url = workerUrl + "/api/mc/presence";
+            conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("X-API-Key", apiKey);
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            conn.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
+
+            int responseCode = conn.getResponseCode();
+            InputStream responseStream = (responseCode >= 200 && responseCode < 300)
+                    ? conn.getInputStream()
+                    : conn.getErrorStream();
+            String responseBody = responseStream != null
+                    ? new String(responseStream.readAllBytes(), StandardCharsets.UTF_8)
+                    : "N/A";
+
+            if (responseCode >= 200 && responseCode < 300) {
+                recordDeliverySuccess();
+                LOGGER.debug("[DiscordTransportService] Presence 更新成功 (HTTP {})", responseCode);
+            } else {
+                recordDeliveryFailure("presence");
+                LOGGER.warn("[DiscordTransportService] Presence 更新失敗 (HTTP {}): {}", responseCode, responseBody);
+            }
+        } catch (Exception e) {
+            recordDeliveryFailure("presence");
+            LOGGER.warn("[DiscordTransportService] Presence 更新失敗: {}", e.getMessage());
+        } finally {
+            if (conn != null) conn.disconnect();
         }
     }
 
@@ -440,6 +489,34 @@ public class DiscordTransportService {
         sendMinecraftEvent("space_unit_public_update", normalizeActor(actor), text);
     }
 
+    public static void sendLockedContainerNetworkBroken(LockedContainerNetworkBrokenEvent event) {
+        if (event == null) return;
+        String actor = normalizeActor(event.actorName());
+        String owner = normalizeActor(event.ownerName());
+        String location = event.dimension() + " " + event.x() + " " + event.y() + " " + event.z();
+        String message;
+        if (event.lockRemoved()) {
+            message = actor + " 破壞了 " + owner + " 上鎖網路的最後一個容器（"
+                    + location + "）；鎖已掉落。";
+        } else {
+            message = actor + " 破壞了 " + owner + " 上鎖網路的 "
+                    + localizedLockedMemberKind(event.brokenMemberKind()) + "（" + location
+                    + "）；根側仍鎖定 " + event.remainingLockedContainers()
+                    + " 個容器，分離側 " + event.detachedUnlockedContainers() + " 個容器已解除鎖定。";
+        }
+        sendMinecraftEvent("locked_container_network_broken", actor, message);
+    }
+
+    private static String localizedLockedMemberKind(String kind) {
+        return switch (normalizeText(kind)) {
+            case "chest" -> "箱子";
+            case "trapped_chest" -> "陷阱箱";
+            case "barrel" -> "木桶";
+            case "hopper" -> "漏斗";
+            default -> "容器";
+        };
+    }
+
     public static void sendBossDefeated(String bossName, String killerName) {
         String boss = normalizeText(bossName);
         if (boss.isEmpty()) return;
@@ -497,21 +574,12 @@ public class DiscordTransportService {
         return workerUrl;
     }
 
-    private static String channelsToJson() {
+    private static JsonArray channelsToJsonArray() {
         JsonArray arr = new JsonArray();
         for (DiscordChannel ch : channels) {
             arr.add(ch.id);
         }
-        return arr.toString();
-    }
-
-    private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        return arr;
     }
 
     private static String normalizeWorkerUrl(String url) {
@@ -624,4 +692,3 @@ public class DiscordTransportService {
         }
     }
 }
-

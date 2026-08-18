@@ -2,33 +2,57 @@ name: Build
 
 on:
   push:
+    branches:
+      - master
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: Yunitrish006006/TotemCore
-          path: TotemCore
-          ref: master
-      - uses: actions/setup-java@v4
+      - name: Check out DiscordBridge
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
-      - run: chmod +x gradlew TotemCore/gradlew
-      - run: ./TotemCore/gradlew -p TotemCore remapJar --no-daemon --stacktrace
-      - name: Build with the checked-out TotemCore artifact
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check out pinned TotemCore
+        uses: actions/checkout@v4
+        with:
+          repository: Yunitrish006006/TotemCore
+          ref: c39da3cdc3b4eff16f63798dc3eae4a49e41d105
+          path: .lockstep/TotemCore
+          persist-credentials: false
+
+      - name: Build TotemCore
         shell: bash
         run: |
           set -euo pipefail
-          totem_core_jar="$(find "${GITHUB_WORKSPACE}/TotemCore/build/libs" \
-            -name 'totem-core-*.jar' ! -name '*-sources.jar' -print -quit)"
-          test -n "${totem_core_jar}"
-          test -f "${totem_core_jar}"
-          ./gradlew -PtotemCoreJar="${totem_core_jar}" build --no-daemon --stacktrace
+          chmod +x .lockstep/TotemCore/gradlew
+          ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore jar --no-daemon --stacktrace
+          core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
+          test -n "$core_version"
+          test -f ".lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
+
+      - name: Test and assemble DiscordBridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
+          core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
+          ./gradlew -PtotemCoreJar="$core_jar" test assemble --no-daemon --stacktrace
+
       - name: Verify standalone Discord distribution layout
         shell: bash
         run: |
@@ -38,5 +62,8 @@ jobs:
           test -f "${jar_file}"
           unzip -p "${jar_file}" fabric.mod.json | grep -F 'dev.totem.discord.TotemDiscordBridge'
           unzip -p "${jar_file}" fabric.mod.json | grep -F 'dev.totem.discord.TotemDiscordBridgeClient'
-          jar tf "${jar_file}" | grep -F 'dev/totem/discord/mixin/DiscordBridgeTransientNotificationMixin.class'
+          jar tf "${jar_file}" | grep -F 'dev/totem/discord/domain/DiscordWorkerPayloadFactory.class'
+          jar tf "${jar_file}" | grep -F 'dev/totem/discord/integration/BoundedEventIdDeduplicator.class'
+          ! jar tf "${jar_file}" | grep -q 'dev/totem/discord/domain/DiscordTransientBridge.class'
+          ! jar tf "${jar_file}" | grep -q 'dev/totem/discord/mixin/DiscordBridgeTransientNotificationMixin.class'
           ! jar tf "${jar_file}" | grep -q '^com/adaptor/deadrecall/.*\.class$'

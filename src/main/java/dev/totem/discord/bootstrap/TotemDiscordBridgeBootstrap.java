@@ -40,6 +40,7 @@ public final class TotemDiscordBridgeBootstrap {
     private static int lowTpsSamples;
     private static double averageTickMillis = 50.0D;
     private static boolean lowTpsAlertActive;
+    private static boolean presenceDirty;
     private TotemDiscordBridgeBootstrap() {
     }
 
@@ -59,15 +60,21 @@ public final class TotemDiscordBridgeBootstrap {
             } else {
                 DiscordTransportService.sendPlayerJoined(player.getName().getString());
             }
+            presenceDirty = true;
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((listener, server) ->
-                DiscordTransportService.sendPlayerLeft(listener.getPlayer().getName().getString()));
+        ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
+            DiscordTransportService.sendPlayerLeft(listener.getPlayer().getName().getString());
+            presenceDirty = true;
+        });
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (server.isDedicatedServer()) sendServerStatus(server, "伺服器已開啟", 20.0D, false);
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> sendServerStatus(server, "伺服器已關閉", 0.0D, true));
         ServerTickEvents.START_SERVER_TICK.register(server -> healthTickStartNanos = System.nanoTime());
-        ServerTickEvents.END_SERVER_TICK.register(TotemDiscordBridgeBootstrap::sampleServerHealth);
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            sampleServerHealth(server);
+            flushPresenceUpdate(server);
+        });
     }
 
     /** Optional adapter invoked by the compatibility bundle's shared death hook. */
@@ -153,8 +160,19 @@ public final class TotemDiscordBridgeBootstrap {
         if (server == null || ("伺服器已開啟".equals(status) && statusOpenServer == server)
                 || ("伺服器已關閉".equals(status) && statusOpenServer != server)) return;
         statusOpenServer = "伺服器已開啟".equals(status) ? server : null;
-        if (immediate) DiscordTransportService.sendServerStatusImmediately(status, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
-        else DiscordTransportService.sendServerStatus(status, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
+        boolean serverOnline = "伺服器已開啟".equals(status);
+        if (immediate) DiscordTransportService.sendServerStatusImmediately(status, serverOnline, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
+        else DiscordTransportService.sendServerStatus(status, serverOnline, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
+    }
+
+    private static void flushPresenceUpdate(MinecraftServer server) {
+        if (!presenceDirty || server == null || statusOpenServer != server) return;
+        presenceDirty = false;
+        DiscordTransportService.sendPresence(
+                true,
+                server.getPlayerList().getPlayerCount(),
+                server.getPlayerList().getMaxPlayers()
+        );
     }
 
     private static void sampleServerHealth(MinecraftServer server) {
@@ -172,4 +190,3 @@ public final class TotemDiscordBridgeBootstrap {
         }
     }
 }
-
