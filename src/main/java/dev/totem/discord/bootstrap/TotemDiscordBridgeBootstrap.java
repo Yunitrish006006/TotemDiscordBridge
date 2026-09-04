@@ -103,6 +103,7 @@ public final class TotemDiscordBridgeBootstrap {
 
     /** Adds the complete Discord command tree to the compatibility bundle dispatcher. */
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
+        DiscordAccountLinkCommands.register(dispatcher);
         var root = Commands.literal("discordbridge").requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_ADMIN));
         root.then(Commands.literal("reload").executes(context -> {
                     DiscordTransportService.reload();

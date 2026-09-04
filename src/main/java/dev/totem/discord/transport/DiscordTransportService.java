@@ -574,6 +574,18 @@ public class DiscordTransportService {
         return workerUrl;
     }
 
+    /** Returns an immutable credential snapshot for module-owned Worker clients. */
+    static synchronized WorkerEndpoint workerEndpoint() {
+        return new WorkerEndpoint(enabled, workerUrl, apiKey);
+    }
+
+    record WorkerEndpoint(boolean enabled, String baseUrl, String apiKey) {
+        boolean available() {
+            return enabled && baseUrl != null && !baseUrl.isBlank()
+                    && apiKey != null && !apiKey.isBlank();
+        }
+    }
+
     private static JsonArray channelsToJsonArray() {
         JsonArray arr = new JsonArray();
         for (DiscordChannel ch : channels) {

@@ -8,15 +8,15 @@ TotemDiscordBridge 將 Minecraft 聊天、玩家動態、管理稽核、公開�
 Minecraft Server → TotemDiscordBridge → Worker → Discord
 ```
 
-目前候選版本為 **0.1.6**，精確搭配 TotemCore **0.6.0**。
+目前候選版本為 **0.1.9**，需要 TotemCore **0.7.x**。
 
 ## 安裝
 
 Server 放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.6.0`
-3. TotemDiscordBridge `0.1.6`
+2. TotemCore `0.7.x`
+3. TotemDiscordBridge `0.1.9`
 
 需要遊戲內設定 GUI 的管理員 Client 也必須安裝相同三個 JAR。只用
 設定檔與 Server 指令時，一般玩家 Client 不需要 Bridge。
@@ -26,7 +26,7 @@ Server 放入：
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.6.0` |
+| 必要 Totem 模組 | `totem-core >=0.7.0 <0.8.0` |
 
 Bridge 不要求 Remnant、Automata、Nexus 或 Locksmith。使用 DeadRecall 2.4.11 整合
 JAR 時不要再安裝獨立 TotemDiscordBridge。
@@ -65,8 +65,30 @@ config/discord-bridge.json
 | `POST /api/mc/chat` | 聊天、玩家與公開事件 |
 | `POST /api/mc/server/status` | 開服、關服與健康狀態 |
 | `POST /api/mc/presence` | 只更新 Bot 狀態，不建立頻道訊息 |
+| `POST /api/mc/players/bind` | 以登入玩家 UUID 驗證一次性綁定碼 |
+| `GET /api/mc/players/<uuid>` | 查詢登入玩家自己的綁定狀態 |
+| `DELETE /api/mc/players/<uuid>` | 解除登入玩家自己的綁定 |
 
 每個請求都帶 `X-API-Key`；Worker 必須使用與 Server 相同的 secret 驗證。
+帳號綁定端點在非本機環境只接受 HTTPS；HTTP 僅供 `localhost`／loopback 開發測試。
+
+### 玩家帳號綁定
+
+一般玩家 Client 不需要安裝模組。綁定流程使用 Server 指令，且不需要管理員權限：
+
+```text
+# 先在 Discord 執行
+/bind <mc_username>
+
+# 再由同一個 Minecraft 帳號登入並執行
+/discordlink verify <8-character-code>
+/discordlink status
+/discordlink unlink
+```
+
+模組只採用 `CommandSourceStack` 對應的登入玩家 UUID 與名稱，不接受玩家自行填寫
+UUID。Worker 請求在專用背景執行緒執行，結果回到 Server thread 後才傳送系統訊息，
+不阻塞 Server tick。驗證碼不會出現在 Bridge log，也不會經過普通聊天轉送路徑。
 
 ### 定時刪除政策
 
