@@ -67,9 +67,9 @@ public final class TotemDiscordBridgeBootstrap {
             presenceDirty = true;
         });
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            if (server.isDedicatedServer()) sendServerStatus(server, "伺服器已開啟", 20.0D, false);
+            if (server.isDedicatedServer()) sendServerStatus(server, true, 20.0D, false);
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> sendServerStatus(server, "伺服器已關閉", 0.0D, true));
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> sendServerStatus(server, false, 0.0D, true));
         ServerTickEvents.START_SERVER_TICK.register(server -> healthTickStartNanos = System.nanoTime());
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             sampleServerHealth(server);
@@ -90,14 +90,14 @@ public final class TotemDiscordBridgeBootstrap {
     /** Optional adapter for integrated-server publish lifecycle notifications. */
     public static void onServerPublished(MinecraftServer server) {
         if (server != null) {
-            sendServerStatus(server, "伺服器已開啟", 20.0D, false);
+            sendServerStatus(server, true, 20.0D, false);
         }
     }
 
     /** Optional adapter for integrated-server unpublish lifecycle notifications. */
     public static void onServerUnpublished(MinecraftServer server) {
         if (server != null) {
-            sendServerStatus(server, "伺服器已關閉", 0.0D, true);
+            sendServerStatus(server, false, 0.0D, true);
         }
     }
 
@@ -157,11 +157,13 @@ public final class TotemDiscordBridgeBootstrap {
         return 0;
     }
 
-    private static void sendServerStatus(MinecraftServer server, String status, double tps, boolean immediate) {
-        if (server == null || ("伺服器已開啟".equals(status) && statusOpenServer == server)
-                || ("伺服器已關閉".equals(status) && statusOpenServer != server)) return;
-        statusOpenServer = "伺服器已開啟".equals(status) ? server : null;
-        boolean serverOnline = "伺服器已開啟".equals(status);
+    private static void sendServerStatus(MinecraftServer server, boolean serverOnline, double tps, boolean immediate) {
+        if (server == null || (serverOnline && statusOpenServer == server)
+                || (!serverOnline && statusOpenServer != server)) return;
+        statusOpenServer = serverOnline ? server : null;
+        String status = DiscordLocalizationService.translate(
+                serverOnline ? "discord.deadrecall.server.started" : "discord.deadrecall.server.stopped"
+        );
         if (immediate) DiscordTransportService.sendServerStatusImmediately(status, serverOnline, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
         else DiscordTransportService.sendServerStatus(status, serverOnline, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
     }
@@ -183,11 +185,17 @@ public final class TotemDiscordBridgeBootstrap {
         double tps = Math.min(20.0D, 1000.0D / Math.max(1.0D, averageTickMillis));
         if (tps < LOW_TPS_THRESHOLD && ++lowTpsSamples >= LOW_TPS_REQUIRED_SAMPLES && !lowTpsAlertActive) {
             lowTpsAlertActive = true;
-            DiscordTransportService.sendServerHealthAlert(String.format(Locale.ROOT, "TPS 持續偏低：%.1f TPS", tps));
+            DiscordTransportService.sendServerHealthAlert(DiscordLocalizationService.format(
+                    "discord.deadrecall.health.low_tps",
+                    String.format(Locale.ROOT, "%.1f", tps)
+            ));
         } else if (tps >= RECOVERED_TPS_THRESHOLD && lowTpsAlertActive) {
             lowTpsSamples = 0;
             lowTpsAlertActive = false;
-            DiscordTransportService.sendServerHealthAlert(String.format(Locale.ROOT, "TPS 已恢復：%.1f TPS", tps));
+            DiscordTransportService.sendServerHealthAlert(DiscordLocalizationService.format(
+                    "discord.deadrecall.health.tps_recovered",
+                    String.format(Locale.ROOT, "%.1f", tps)
+            ));
         }
     }
 }

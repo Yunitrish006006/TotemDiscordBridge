@@ -37,10 +37,12 @@ import java.util.regex.Pattern;
 
 public final class DiscordLocalizationService {
     private static final List<String> BUNDLED_TABLES = List.of(
+            "/assets/deadrecall/lang/discord_en_us/system.json",
+            "/assets/deadrecall/lang/discord_es_es/system.json",
             "/assets/deadrecall/lang/discord_zh_tw/system.json"
     );
     private static final String SERVER_DATA_DIRECTORY = "deadrecall/discord_zh_tw";
-    private static final List<String> MOD_LANGUAGE_PREFERENCE = List.of("en_us", "zh_tw");
+    private static final List<String> MOD_LANGUAGE_PREFERENCE = List.of("en_us", "es_es", "zh_tw");
     private static final Identifier RELOAD_LISTENER_ID =
             Identifier.fromNamespaceAndPath("deadrecall", "discord_zh_tw");
     private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s|%%");
@@ -82,7 +84,7 @@ public final class DiscordLocalizationService {
             appendComponent(result, component, translations);
             return normalize(result.toString());
         } catch (RuntimeException exception) {
-            LOGGER.warn("[DiscordBridge] 無法解析 Discord zh_tw Component", exception);
+            LOGGER.warn("[DiscordBridge] 無法解析 Discord 繁中 Component", exception);
             return "未知訊息";
         }
     }
@@ -135,6 +137,16 @@ public final class DiscordLocalizationService {
         }
         warnMissingKey(key);
         return safeFallback(key);
+    }
+
+    /** Formats an outbound Discord message from the current atomically published locale snapshot. */
+    public static String format(String key, String... arguments) {
+        return applyPlaceholders(translate(key), arguments == null ? new String[0] : arguments);
+    }
+
+    /** Checks the key itself, never a translated fallback string. */
+    public static boolean hasTranslation(String key) {
+        return key != null && !key.isBlank() && translations.containsKey(key);
     }
 
     public static int translationCount() {
@@ -275,7 +287,7 @@ public final class DiscordLocalizationService {
             return;
         }
         WARNED_MISSING_KEYS.add(key);
-        LOGGER.warn("[DiscordBridge] zh_tw 翻譯缺少 key {}，使用安全 fallback", key);
+        LOGGER.warn("[DiscordBridge] 繁中翻譯缺少 key {}，使用安全 fallback", key);
     }
 
     private static void reloadFromServerData(ResourceManager resourceManager) {
@@ -319,14 +331,14 @@ public final class DiscordLocalizationService {
         for (String path : BUNDLED_TABLES) {
             try (InputStream stream = DiscordLocalizationService.class.getResourceAsStream(path)) {
                 if (stream == null) {
-                    LOGGER.warn("[DiscordBridge] 缺少 zh_tw 翻譯資源 {}", path);
+                    LOGGER.warn("[DiscordBridge] 缺少翻譯資源 {}", path);
                     continue;
                 }
                 try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
                     mergeTranslationTable(reader, translations);
                 }
             } catch (Exception exception) {
-                LOGGER.warn("[DiscordBridge] 無法載入 zh_tw 翻譯資源 {}", path, exception);
+                LOGGER.warn("[DiscordBridge] 無法載入翻譯資源 {}", path, exception);
             }
         }
         return Map.copyOf(translations);
@@ -348,6 +360,7 @@ public final class DiscordLocalizationService {
         }
 
         int loaded = mergeModLanguageRoots(roots, candidate, List.of("en_us"));
+        loaded += mergeModLanguageRoots(roots, candidate, List.of("es_es"));
         int vanillaLoaded = mergeCachedVanillaLanguage(candidate);
         loaded += mergeModLanguageRoots(roots, candidate, List.of("zh_tw"));
         candidate.putAll(BUNDLED_TRANSLATIONS);

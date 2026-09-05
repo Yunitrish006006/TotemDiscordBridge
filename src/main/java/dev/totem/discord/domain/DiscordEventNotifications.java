@@ -37,13 +37,17 @@ public final class DiscordEventNotifications {
                 previousLevel,
                 currentLevel
         );
-        DiscordEventDispatcher.send("villager_level_up", "系統", message);
+        DiscordEventDispatcher.send(
+                "villager_level_up",
+                DiscordLocalizationService.translate("discord.deadrecall.system"),
+                message
+        );
     }
 
     public static void death(Component deathMessage) {
         DiscordEventDispatcher.send(
                 "player_death",
-                "死亡訊息",
+                DiscordLocalizationService.translate("discord.deadrecall.death.unknown"),
                 DiscordEventFormatter.deathMessage(deathMessage)
         );
     }
@@ -52,13 +56,19 @@ public final class DiscordEventNotifications {
         String normalizedKiller = normalize(killerName);
         DiscordEventDispatcher.send(
                 "boss_defeated",
-                normalizedKiller.isEmpty() ? "系統" : normalizedKiller,
+                normalizedKiller.isEmpty()
+                        ? DiscordLocalizationService.translate("discord.deadrecall.system")
+                        : normalizedKiller,
                 DiscordEventFormatter.bossDefeatedMessage(bossName, normalizedKiller)
         );
     }
 
     public static void raidEnded(String result) {
-        DiscordEventDispatcher.send("raid_ended", "系統", DiscordEventFormatter.raidEndedMessage(result));
+        DiscordEventDispatcher.send(
+                "raid_ended",
+                DiscordLocalizationService.translate("discord.deadrecall.system"),
+                DiscordEventFormatter.raidEndedMessage(result)
+        );
     }
 
     public static void difficultyChanged(String actor, String difficultyPath) {
@@ -75,4 +85,3 @@ public final class DiscordEventNotifications {
         return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }
-

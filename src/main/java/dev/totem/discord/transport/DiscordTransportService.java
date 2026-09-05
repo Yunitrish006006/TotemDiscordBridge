@@ -2,6 +2,7 @@ package dev.totem.discord.transport;
 
 import dev.totem.core.api.v1.event.LockedContainerNetworkBrokenEvent;
 import dev.totem.discord.domain.DiscordEventNotifications;
+import dev.totem.discord.domain.DiscordLocalizationService;
 import dev.totem.discord.domain.DiscordWorkerPayloadFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -402,9 +403,16 @@ public class DiscordTransportService {
     public static void sendVillagerLevelUp(String villagerName, int oldLevel, int newLevel) {
         if (!enabled) return;
 
-        String name = (villagerName == null || villagerName.isBlank()) ? "村民" : villagerName.trim();
-        String message = String.format("%s 升級了：等級 %d → %d", name, oldLevel, newLevel);
-        sendMinecraftEvent("villager_level_up", "系統", message);
+        String name = (villagerName == null || villagerName.isBlank())
+                ? DiscordLocalizationService.translate("entity.minecraft.villager")
+                : villagerName.trim();
+        String message = DiscordLocalizationService.format(
+                "discord.deadrecall.villager.level_up",
+                name,
+                String.valueOf(oldLevel),
+                String.valueOf(newLevel)
+        );
+        sendMinecraftEvent("villager_level_up", DiscordLocalizationService.translate("discord.deadrecall.system"), message);
     }
 
     /**
@@ -422,7 +430,7 @@ public class DiscordTransportService {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("player_join", name, "加入伺服器");
+        sendMinecraftEvent("player_join", name, DiscordLocalizationService.translate("discord.deadrecall.player.joined"));
     }
 
     /**
@@ -432,14 +440,18 @@ public class DiscordTransportService {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("player_leave", name, "離開伺服器");
+        sendMinecraftEvent("player_leave", name, DiscordLocalizationService.translate("discord.deadrecall.player.left"));
     }
 
     public static void sendPlayerFirstJoined(String playerName) {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("player_first_join", name, "第一次加入伺服器");
+        sendMinecraftEvent(
+                "player_first_join",
+                name,
+                DiscordLocalizationService.translate("discord.deadrecall.player.first_joined")
+        );
     }
 
     public static void sendAdvancement(String playerName, String advancementTitle, String advancementType) {
@@ -448,7 +460,15 @@ public class DiscordTransportService {
         if (name.isEmpty() || title.isEmpty()) return;
 
         String type = normalizeText(advancementType);
-        String message = type.isEmpty() ? name + " 完成了進度 " + title : name + " 完成了 " + type + " 進度 " + title;
+        String localizedType = type.isEmpty()
+                ? DiscordLocalizationService.translate("discord.deadrecall.advancement.task")
+                : type;
+        String message = DiscordLocalizationService.format(
+                "discord.deadrecall.advancement.message",
+                name,
+                localizedType,
+                title
+        );
         sendMinecraftEvent("advancement", name, message);
     }
 
@@ -458,35 +478,55 @@ public class DiscordTransportService {
         if (normalizedAction.isEmpty() || target.isEmpty()) return;
 
         String source = normalizeActor(actor);
-        sendMinecraftEvent("admin_action", source, source + " 執行管理操作：" + normalizedAction + " " + target);
+        sendMinecraftEvent(
+                "admin_action",
+                source,
+                DiscordLocalizationService.format("discord.deadrecall.admin.action", source, normalizedAction, target)
+        );
     }
 
     public static void sendServerHealthAlert(String message) {
         String text = normalizeText(message);
         if (text.isEmpty()) return;
 
-        sendMinecraftEvent("server_health_alert", "系統", text);
+        sendMinecraftEvent(
+                "server_health_alert",
+                DiscordLocalizationService.translate("discord.deadrecall.system"),
+                text
+        );
     }
 
     public static void sendDeathBackpackCreated(String playerName) {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("death_backpack_created", name, name + " 的死亡背包已建立");
+        sendMinecraftEvent(
+                "death_backpack_created",
+                name,
+                DiscordLocalizationService.format("discord.deadrecall.death_backpack.created", name)
+        );
     }
 
     public static void sendDeathBackpackRecovered(String playerName) {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("death_backpack_recovered", name, name + " 的死亡背包已回收");
+        sendMinecraftEvent(
+                "death_backpack_recovered",
+                name,
+                DiscordLocalizationService.format("discord.deadrecall.death_backpack.recovered", name)
+        );
     }
 
     public static void sendSpaceUnitPublicUpdate(String actor, String message) {
         String text = normalizeText(message);
         if (text.isEmpty()) return;
 
-        sendMinecraftEvent("space_unit_public_update", normalizeActor(actor), text);
+        sendMinecraftEvent(
+                "space_unit_public_update",
+                normalizeActor(actor),
+                DiscordLocalizationService.format("discord.deadrecall.space_unit.public_update", text)
+        );
     }
 
     public static void sendLockedContainerNetworkBroken(LockedContainerNetworkBrokenEvent event) {
@@ -496,24 +536,33 @@ public class DiscordTransportService {
         String location = event.dimension() + " " + event.x() + " " + event.y() + " " + event.z();
         String message;
         if (event.lockRemoved()) {
-            message = actor + " 破壞了 " + owner + " 上鎖網路的最後一個容器（"
-                    + location + "）；鎖已掉落。";
+            message = DiscordLocalizationService.format(
+                    "discord.deadrecall.locked_network.broken.last",
+                    actor,
+                    owner,
+                    location
+            );
         } else {
-            message = actor + " 破壞了 " + owner + " 上鎖網路的 "
-                    + localizedLockedMemberKind(event.brokenMemberKind()) + "（" + location
-                    + "）；根側仍鎖定 " + event.remainingLockedContainers()
-                    + " 個容器，分離側 " + event.detachedUnlockedContainers() + " 個容器已解除鎖定。";
+            message = DiscordLocalizationService.format(
+                    "discord.deadrecall.locked_network.broken.member",
+                    actor,
+                    owner,
+                    localizedLockedMemberKind(event.brokenMemberKind()),
+                    location,
+                    String.valueOf(event.remainingLockedContainers()),
+                    String.valueOf(event.detachedUnlockedContainers())
+            );
         }
         sendMinecraftEvent("locked_container_network_broken", actor, message);
     }
 
     private static String localizedLockedMemberKind(String kind) {
         return switch (normalizeText(kind)) {
-            case "chest" -> "箱子";
-            case "trapped_chest" -> "陷阱箱";
-            case "barrel" -> "木桶";
-            case "hopper" -> "漏斗";
-            default -> "容器";
+            case "chest" -> DiscordLocalizationService.translate("discord.deadrecall.container.chest");
+            case "trapped_chest" -> DiscordLocalizationService.translate("discord.deadrecall.container.trapped_chest");
+            case "barrel" -> DiscordLocalizationService.translate("discord.deadrecall.container.barrel");
+            case "hopper" -> DiscordLocalizationService.translate("discord.deadrecall.container.hopper");
+            default -> DiscordLocalizationService.translate("discord.deadrecall.container.generic");
         };
     }
 
@@ -528,8 +577,14 @@ public class DiscordTransportService {
 
     public static void sendRaidStarted(String playerName) {
         String name = normalizePlayerName(playerName);
-        String message = name.isEmpty() ? "襲擊已開始" : name + " 觸發了襲擊";
-        sendMinecraftEvent("raid_started", name.isEmpty() ? "系統" : name, message);
+        String message = name.isEmpty()
+                ? DiscordLocalizationService.translate("discord.deadrecall.raid.started")
+                : DiscordLocalizationService.format("discord.deadrecall.raid.started.by", name);
+        sendMinecraftEvent(
+                "raid_started",
+                name.isEmpty() ? DiscordLocalizationService.translate("discord.deadrecall.system") : name,
+                message
+        );
     }
 
     public static synchronized void sendRaidStarted(String raidKey, String playerName) {
@@ -563,7 +618,16 @@ public class DiscordTransportService {
         if (normalizedRule.isEmpty() || normalizedValue.isEmpty()) return;
 
         String source = normalizeActor(actor);
-        sendMinecraftEvent("gamerule_changed", source, source + " 將 gamerule " + normalizedRule + " 改為 " + normalizedValue);
+        sendMinecraftEvent(
+                "gamerule_changed",
+                source,
+                DiscordLocalizationService.format(
+                        "discord.deadrecall.gamerule.changed",
+                        source,
+                        normalizedRule,
+                        normalizedValue
+                )
+        );
     }
 
     public static boolean isEnabled() {
@@ -651,7 +715,7 @@ public class DiscordTransportService {
 
     private static String normalizeActor(String actor) {
         String normalized = normalizeText(actor);
-        return normalized.isEmpty() ? "server" : normalized;
+        return normalized.isEmpty() ? DiscordLocalizationService.translate("discord.deadrecall.server") : normalized;
     }
 
     private static void recordDeliverySuccess() {
@@ -667,7 +731,10 @@ public class DiscordTransportService {
         if (consecutiveDeliveryFailures >= DELIVERY_FAILURE_ALERT_THRESHOLD) {
             deliveryFailureAlertReported = true;
             LOGGER.warn("[DiscordTransportService] 連續 {} 次傳送失敗", consecutiveDeliveryFailures);
-            sendServerHealthAlert("Discord Bridge 連續 " + consecutiveDeliveryFailures + " 次傳送失敗，請檢查 Worker、Bot Token 或 Webhook 設定");
+            sendServerHealthAlert(DiscordLocalizationService.format(
+                    "discord.deadrecall.health.delivery_failures",
+                    String.valueOf(consecutiveDeliveryFailures)
+            ));
         }
     }
 

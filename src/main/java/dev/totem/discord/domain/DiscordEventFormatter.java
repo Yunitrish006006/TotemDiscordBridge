@@ -26,7 +26,12 @@ public final class DiscordEventFormatter {
             case "challenge" -> "discord.deadrecall.advancement.challenge";
             default -> "discord.deadrecall.advancement.task";
         });
-        return name + " 完成了" + type + "「" + localizedTitle + "」";
+        return DiscordLocalizationService.format(
+                "discord.deadrecall.advancement.message",
+                name,
+                type,
+                localizedTitle
+        );
     }
 
     public static String villagerLevelUpMessage(
@@ -39,16 +44,27 @@ public final class DiscordEventFormatter {
         String villagerName = normalizedCustomName.isEmpty()
                 ? DiscordLocalizationService.translate("entity.minecraft.villager")
                 : normalizedCustomName;
-        String profession = DiscordLocalizationService.translate(
-                "entity.minecraft.villager." + normalizeProfessionPath(professionPath)
-        );
+        String normalizedProfessionPath = normalizeProfessionPath(professionPath);
+        String professionKey = "entity.minecraft.villager." + normalizedProfessionPath;
+        String profession = DiscordLocalizationService.translate(professionKey);
         String previous = DiscordLocalizationService.translate("merchant.level." + clampLevel(previousLevel));
         String current = DiscordLocalizationService.translate("merchant.level." + clampLevel(currentLevel));
 
-        if ("未知訊息".equals(profession) || "未知實體".equals(profession)) {
-            return villagerName + " 升級：" + previous + " → " + current;
+        if ("none".equals(normalizedProfessionPath) || !DiscordLocalizationService.hasTranslation(professionKey)) {
+            return DiscordLocalizationService.format(
+                    "discord.deadrecall.villager.level_up",
+                    villagerName,
+                    previous,
+                    current
+            );
         }
-        return villagerName + "（" + profession + "）升級：" + previous + " → " + current;
+        return DiscordLocalizationService.format(
+                "discord.deadrecall.villager.level_up.with_profession",
+                villagerName,
+                profession,
+                previous,
+                current
+        );
     }
 
     public static String deathMessage(Component deathMessage) {
@@ -65,7 +81,9 @@ public final class DiscordEventFormatter {
         }
 
         String killer = normalize(killerName);
-        return killer.isEmpty() ? boss + " 被擊敗了" : killer + " 擊敗了 " + boss;
+        return killer.isEmpty()
+                ? DiscordLocalizationService.format("discord.deadrecall.boss.defeated", boss)
+                : DiscordLocalizationService.format("discord.deadrecall.boss.defeated.by", killer, boss);
     }
 
     public static String raidEndedMessage(String result) {
@@ -75,18 +93,21 @@ public final class DiscordEventFormatter {
             case "stopped" -> "discord.deadrecall.raid.stopped";
             default -> "discord.deadrecall.raid.ended";
         };
-        return "襲擊已結束：" + DiscordLocalizationService.translate(resultKey);
+        return DiscordLocalizationService.format(
+                "discord.deadrecall.raid.ended.message",
+                DiscordLocalizationService.translate(resultKey)
+        );
     }
 
     public static String difficultyChangedMessage(String actor, String difficultyPath) {
         String source = normalize(actor);
         if (source.isEmpty()) {
-            source = "server";
+            source = DiscordLocalizationService.translate("discord.deadrecall.server");
         }
         String difficulty = DiscordLocalizationService.translate(
                 "options.difficulty." + normalize(difficultyPath).toLowerCase(java.util.Locale.ROOT)
         );
-        return source + " 將難度改為 " + difficulty;
+        return DiscordLocalizationService.format("discord.deadrecall.difficulty.changed", source, difficulty);
     }
 
     private static int clampLevel(int level) {

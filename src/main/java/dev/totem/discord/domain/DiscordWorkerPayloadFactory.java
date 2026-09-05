@@ -3,8 +3,6 @@ package dev.totem.discord.domain;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import java.util.Locale;
-
 /** Builds Worker payloads and applies the module-owned lifetime policy exactly once. */
 public final class DiscordWorkerPayloadFactory {
     private DiscordWorkerPayloadFactory() {
@@ -58,8 +56,12 @@ public final class DiscordWorkerPayloadFactory {
         presence.addProperty(
                 "activity_name",
                 serverOnline
-                        ? String.format(Locale.ROOT, "%d/%d 人在線", playersOnline, playersMax)
-                        : "伺服器離線"
+                        ? DiscordLocalizationService.format(
+                                "discord.deadrecall.presence.players",
+                                String.valueOf(playersOnline),
+                                String.valueOf(playersMax)
+                        )
+                        : DiscordLocalizationService.translate("discord.deadrecall.presence.offline")
         );
         // Discord activity type 0 = Playing. The module owns this presentation decision.
         presence.addProperty("activity_type", 0);

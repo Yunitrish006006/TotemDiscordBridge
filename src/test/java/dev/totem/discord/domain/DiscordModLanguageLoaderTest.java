@@ -18,7 +18,7 @@ class DiscordModLanguageLoaderTest {
     Path modRoot;
 
     @Test
-    void loadsEnglishFallbackAndLetsTraditionalChineseOverrideIt() throws Exception {
+    void loadsEnglishFallbackThenSpanishAndLetsTraditionalChineseOverrideIt() throws Exception {
         Path languageDirectory = Files.createDirectories(modRoot.resolve("assets/example/lang"));
         Files.writeString(
                 languageDirectory.resolve("en_us.json"),
@@ -26,6 +26,15 @@ class DiscordModLanguageLoaderTest {
                 {
                   "advancements.example.sky_high.title": "Sky High",
                   "advancements.example.english_only.title": "English Only"
+                }
+                """,
+                StandardCharsets.UTF_8
+        );
+        Files.writeString(
+                languageDirectory.resolve("es_es.json"),
+                """
+                {
+                  "advancements.example.sky_high.title": "Hasta el cielo"
                 }
                 """,
                 StandardCharsets.UTF_8
@@ -42,7 +51,7 @@ class DiscordModLanguageLoaderTest {
 
         Map<String, String> previous = DiscordLocalizationService.snapshotForTesting();
         Map<String, String> loaded = new LinkedHashMap<>(previous);
-        assertEquals(3, DiscordLocalizationService.mergeModLanguageRoots(List.of(modRoot), loaded));
+        assertEquals(4, DiscordLocalizationService.mergeModLanguageRoots(List.of(modRoot), loaded));
         assertEquals("飛向天際", loaded.get("advancements.example.sky_high.title"));
         assertEquals("English Only", loaded.get("advancements.example.english_only.title"));
 

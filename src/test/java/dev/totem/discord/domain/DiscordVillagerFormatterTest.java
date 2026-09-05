@@ -20,4 +20,12 @@ class DiscordVillagerFormatterTest {
                 DiscordEventFormatter.villagerLevelUpMessage("阿明", "librarian", 4, 5)
         );
     }
+
+    @Test
+    void unknownProfessionUsesTheProfessionFreeTemplateWithoutInspectingLocalizedText() {
+        assertEquals(
+                "村民升級：新手 → 學徒",
+                DiscordEventFormatter.villagerLevelUpMessage("", "modded_unknown", 1, 2)
+        );
+    }
 }
