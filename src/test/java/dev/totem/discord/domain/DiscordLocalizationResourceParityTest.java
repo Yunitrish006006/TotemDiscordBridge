@@ -28,6 +28,7 @@ class DiscordLocalizationResourceParityTest {
     @Test
     void discordConfigurationScreensHaveMatchingKeysAndPlaceholders() {
         assertLocaleParity("en_us.json", "es_es.json");
+        assertLocaleParity("en_us.json", "ja_jp.json");
         assertLocaleParity("en_us.json", "zh_tw.json");
     }
 

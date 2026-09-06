@@ -8,7 +8,7 @@ TotemDiscordBridge 將 Minecraft 聊天、玩家動態、管理稽核、公開�
 Minecraft Server → TotemDiscordBridge → Worker → Discord
 ```
 
-目前候選版本為 **0.1.9**，需要 TotemCore **0.7.x**。
+目前候選版本為 **0.1.11**，需要 TotemCore **0.7.x**。
 
 ## 安裝
 
@@ -16,7 +16,7 @@ Server 放入：
 
 1. Fabric API `0.154.2+26.2`
 2. TotemCore `0.7.x`
-3. TotemDiscordBridge `0.1.9`
+3. TotemDiscordBridge `0.1.11`
 
 需要遊戲內設定 GUI 的管理員 Client 也必須安裝相同三個 JAR。只用
 設定檔與 Server 指令時，一般玩家 Client 不需要 Bridge。
@@ -158,6 +158,9 @@ Bridge 啟動時會自行註冊 subscriber；各功能模組不存在或沒有�
 回退基底，西班牙文資源也會保留供遊戲原生語系使用。原版繁中語言檔不再
 內嵌於模組；Server 首次載入時會依目前 Minecraft 版本下載並驗證 Mojang
 官方 `zh_tw` 資產，之後使用版本化快取。
+
+管理員的遊戲內設定畫面另外提供 `en_us`、`es_es`、`ja_jp` 與 `zh_tw`
+資源；這不會改變 Discord 對外訊息固定以繁中為最高優先的行為。
 
 ## 安全注意
 
