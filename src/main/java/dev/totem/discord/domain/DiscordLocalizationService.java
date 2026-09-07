@@ -441,7 +441,24 @@ public final class DiscordLocalizationService {
     }
 
     private static int mergeTranslationTable(Reader reader, Map<String, String> output) {
-        return mergeTranslationTable(reader, output, false);
+        JsonElement parsed = JsonParser.parseReader(reader);
+        if (!parsed.isJsonObject()) {
+            throw new JsonParseException("translation table must be a JSON object");
+        }
+
+        int loaded = 0;
+        JsonObject table = parsed.getAsJsonObject();
+        for (Map.Entry<String, JsonElement> entry : table.entrySet()) {
+            JsonElement value = entry.getValue();
+            if (entry.getKey().isBlank()
+                    || !value.isJsonPrimitive()
+                    || !value.getAsJsonPrimitive().isString()) {
+                continue;
+            }
+            output.put(entry.getKey(), value.getAsString());
+            loaded++;
+        }
+        return loaded;
     }
 
     private static void publishSnapshot(Map<String, String> candidate) {
