@@ -14,7 +14,7 @@ import java.util.Collection;
 @Mixin(PardonCommand.class)
 public abstract class PardonCommandMixin {
     @Inject(method = "pardonPlayers", at = @At("RETURN"))
-    private static void deadrecall$notifyPardonPlayers(
+    private static void totem$notifyPardonPlayers(
             CommandSourceStack source,
             Collection<NameAndId> targets,
             CallbackInfoReturnable<Integer> cir

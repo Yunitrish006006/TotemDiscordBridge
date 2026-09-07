@@ -19,15 +19,15 @@ public final class DiscordEventFormatter {
         String name = normalize(playerName);
         String localizedTitle = DiscordLocalizationService.renderAdvancementTitle(title, advancementId);
         if (localizedTitle.isEmpty()) {
-            localizedTitle = DiscordLocalizationService.translate("discord.deadrecall.advancement.unknown");
+            localizedTitle = DiscordLocalizationService.translate("discord.totem.advancement.unknown");
         }
         String type = DiscordLocalizationService.translate(switch (normalize(frameType)) {
-            case "goal" -> "discord.deadrecall.advancement.goal";
-            case "challenge" -> "discord.deadrecall.advancement.challenge";
-            default -> "discord.deadrecall.advancement.task";
+            case "goal" -> "discord.totem.advancement.goal";
+            case "challenge" -> "discord.totem.advancement.challenge";
+            default -> "discord.totem.advancement.task";
         });
         return DiscordLocalizationService.format(
-                "discord.deadrecall.advancement.message",
+                "discord.totem.advancement.message",
                 name,
                 type,
                 localizedTitle
@@ -52,14 +52,14 @@ public final class DiscordEventFormatter {
 
         if ("none".equals(normalizedProfessionPath) || !DiscordLocalizationService.hasTranslation(professionKey)) {
             return DiscordLocalizationService.format(
-                    "discord.deadrecall.villager.level_up",
+                    "discord.totem.villager.level_up",
                     villagerName,
                     previous,
                     current
             );
         }
         return DiscordLocalizationService.format(
-                "discord.deadrecall.villager.level_up.with_profession",
+                "discord.totem.villager.level_up.with_profession",
                 villagerName,
                 profession,
                 previous,
@@ -70,31 +70,31 @@ public final class DiscordEventFormatter {
     public static String deathMessage(Component deathMessage) {
         String localized = DiscordLocalizationService.render(deathMessage);
         return localized.isEmpty()
-                ? DiscordLocalizationService.translate("discord.deadrecall.death.unknown")
+                ? DiscordLocalizationService.translate("discord.totem.death.unknown")
                 : localized;
     }
 
     public static String bossDefeatedMessage(Component bossName, String killerName) {
         String boss = DiscordLocalizationService.render(bossName);
         if (boss.isEmpty()) {
-            boss = DiscordLocalizationService.translate("discord.deadrecall.entity.unknown");
+            boss = DiscordLocalizationService.translate("discord.totem.entity.unknown");
         }
 
         String killer = normalize(killerName);
         return killer.isEmpty()
-                ? DiscordLocalizationService.format("discord.deadrecall.boss.defeated", boss)
-                : DiscordLocalizationService.format("discord.deadrecall.boss.defeated.by", killer, boss);
+                ? DiscordLocalizationService.format("discord.totem.boss.defeated", boss)
+                : DiscordLocalizationService.format("discord.totem.boss.defeated.by", killer, boss);
     }
 
     public static String raidEndedMessage(String result) {
         String resultKey = switch (normalize(result)) {
             case "victory" -> "event.minecraft.raid.victory";
             case "defeat", "loss" -> "event.minecraft.raid.defeat";
-            case "stopped" -> "discord.deadrecall.raid.stopped";
-            default -> "discord.deadrecall.raid.ended";
+            case "stopped" -> "discord.totem.raid.stopped";
+            default -> "discord.totem.raid.ended";
         };
         return DiscordLocalizationService.format(
-                "discord.deadrecall.raid.ended.message",
+                "discord.totem.raid.ended.message",
                 DiscordLocalizationService.translate(resultKey)
         );
     }
@@ -102,12 +102,12 @@ public final class DiscordEventFormatter {
     public static String difficultyChangedMessage(String actor, String difficultyPath) {
         String source = normalize(actor);
         if (source.isEmpty()) {
-            source = DiscordLocalizationService.translate("discord.deadrecall.server");
+            source = DiscordLocalizationService.translate("discord.totem.server");
         }
         String difficulty = DiscordLocalizationService.translate(
                 "options.difficulty." + normalize(difficultyPath).toLowerCase(java.util.Locale.ROOT)
         );
-        return DiscordLocalizationService.format("discord.deadrecall.difficulty.changed", source, difficulty);
+        return DiscordLocalizationService.format("discord.totem.difficulty.changed", source, difficulty);
     }
 
     private static int clampLevel(int level) {

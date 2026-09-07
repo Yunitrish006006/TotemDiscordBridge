@@ -33,69 +33,79 @@ public final class DiscordPayloadRegistration {
     public static void registerReceivers() {
         // 收到客戶端請求時，回傳目前設定
         ServerPlayNetworking.registerGlobalReceiver(RequestDiscordConfigPayload.TYPE,
-                (payload, context) -> {
-                    ServerPlayer player = context.player();
-                    if (!PayloadPermissionChecks.canManageServerConfiguration(player)) {
-                        player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.permission_view").withStyle(ChatFormatting.RED));
-                        LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權讀取設定", player.getName().getString());
-                        return;
-                    }
-
-                    sendDiscordConfigTo(player);
-                });
+                (payload, context) -> handleConfigRequest(context.player()));
 
         // 收到客戶端儲存請求時，更新設定（需要 OP 權限）
         ServerPlayNetworking.registerGlobalReceiver(SaveDiscordConfigPayload.TYPE,
-                (payload, context) -> {
-                    ServerPlayer player = context.player();
-
-                    if (!PayloadPermissionChecks.canManageServerConfiguration(player)) {
-                        player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.permission_modify").withStyle(ChatFormatting.RED));
-                        LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權修改設定", player.getName().getString());
-                        return;
-                    }
-
-                    try {
-                        DiscordTransportService.updateConfig(payload.enabled(), payload.workerUrl(), payload.apiKey());
-                        player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.settings_updated").withStyle(ChatFormatting.GREEN));
-                        sendDiscordConfigTo(player);
-                    } catch (IllegalArgumentException e) {
-                        player.sendSystemMessage(Component.literal(e.getMessage()).withStyle(ChatFormatting.RED));
-                    } catch (Exception e) {
-                        player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.update_failed", e.getMessage()).withStyle(ChatFormatting.RED));
-                        LOGGER.error("[DiscordBridge] 更新設定失敗", e);
-                    }
-                });
+                (payload, context) -> handleConfigSave(
+                        context.player(), payload.enabled(), payload.workerUrl(), payload.apiKey()));
 
         // 收到頻道管理請求時，添加或移除頻道
         ServerPlayNetworking.registerGlobalReceiver(ManageDiscordChannelPayload.TYPE,
-                (payload, context) -> {
-                    ServerPlayer player = context.player();
+                (payload, context) -> handleChannelManagement(
+                        context.player(), payload.action(), payload.channelId(), payload.channelName()));
+    }
 
-                    if (!PayloadPermissionChecks.canManageServerConfiguration(player)) {
-                        player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.permission_channels").withStyle(ChatFormatting.RED));
-                        LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權管理頻道", player.getName().getString());
-                        return;
-                    }
+    private static void handleConfigRequest(ServerPlayer player) {
+        if (!PayloadPermissionChecks.canManageServerConfiguration(player)) {
+            player.sendSystemMessage(Component.translatable("message.totem.discord_config.permission_view").withStyle(ChatFormatting.RED));
+            LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權讀取設定", player.getName().getString());
+            return;
+        }
+        sendDiscordConfigTo(player);
+    }
 
-                    try {
-                        if ("add".equals(payload.action())) {
-                            DiscordTransportService.addChannel(payload.channelId(), payload.channelName());
-                            player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.channel_added", payload.channelName()).withStyle(ChatFormatting.GREEN));
-                        } else if ("remove".equals(payload.action())) {
-                            DiscordTransportService.removeChannel(payload.channelId());
-                            player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.channel_removed", payload.channelId()).withStyle(ChatFormatting.GREEN));
-                        } else {
-                            throw new IllegalArgumentException("Unsupported channel operation");
-                        }
-                        sendDiscordConfigTo(player);
-                    } catch (IllegalArgumentException e) {
-                        player.sendSystemMessage(Component.literal(e.getMessage()).withStyle(ChatFormatting.RED));
-                    } catch (Exception e) {
-                        player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.operation_failed", e.getMessage()).withStyle(ChatFormatting.RED));
-                        LOGGER.error("[DiscordBridge] 管理頻道失敗", e);
-                    }
-                });
+    private static void handleConfigSave(
+            ServerPlayer player,
+            boolean enabled,
+            String workerUrl,
+            String apiKey
+    ) {
+        if (!PayloadPermissionChecks.canManageServerConfiguration(player)) {
+            player.sendSystemMessage(Component.translatable("message.totem.discord_config.permission_modify").withStyle(ChatFormatting.RED));
+            LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權修改設定", player.getName().getString());
+            return;
+        }
+        try {
+            DiscordTransportService.updateConfig(enabled, workerUrl, apiKey);
+            player.sendSystemMessage(Component.translatable("message.totem.discord_config.settings_updated").withStyle(ChatFormatting.GREEN));
+            sendDiscordConfigTo(player);
+        } catch (IllegalArgumentException exception) {
+            player.sendSystemMessage(Component.literal(exception.getMessage()).withStyle(ChatFormatting.RED));
+        } catch (Exception exception) {
+            player.sendSystemMessage(Component.translatable("message.totem.discord_config.update_failed", exception.getMessage()).withStyle(ChatFormatting.RED));
+            LOGGER.error("[DiscordBridge] 更新設定失敗", exception);
+        }
+    }
+
+    private static void handleChannelManagement(
+            ServerPlayer player,
+            String action,
+            String channelId,
+            String channelName
+    ) {
+        if (!PayloadPermissionChecks.canManageServerConfiguration(player)) {
+            player.sendSystemMessage(Component.translatable("message.totem.discord_config.permission_channels").withStyle(ChatFormatting.RED));
+            LOGGER.warn("[DiscordBridge] 玩家 {} 嘗試未授權管理頻道", player.getName().getString());
+            return;
+        }
+        try {
+            if ("add".equals(action)) {
+                DiscordTransportService.addChannel(channelId, channelName);
+                player.sendSystemMessage(Component.translatable("message.totem.discord_config.channel_added", channelName).withStyle(ChatFormatting.GREEN));
+            } else if ("remove".equals(action)) {
+                DiscordTransportService.removeChannel(channelId);
+                player.sendSystemMessage(Component.translatable("message.totem.discord_config.channel_removed", channelId).withStyle(ChatFormatting.GREEN));
+            } else {
+                throw new IllegalArgumentException("Unsupported channel operation");
+            }
+            sendDiscordConfigTo(player);
+        } catch (IllegalArgumentException exception) {
+            player.sendSystemMessage(Component.literal(exception.getMessage()).withStyle(ChatFormatting.RED));
+        } catch (Exception exception) {
+            player.sendSystemMessage(Component.translatable("message.totem.discord_config.operation_failed", exception.getMessage()).withStyle(ChatFormatting.RED));
+            LOGGER.error("[DiscordBridge] 管理頻道失敗", exception);
+        }
     }
 
     private static void sendDiscordConfigTo(ServerPlayer player) {
@@ -104,14 +114,10 @@ public final class DiscordPayloadRegistration {
         for (var channel : channels) {
             syncedChannels.add(new DiscordConfigSyncPayload.ChannelData(channel.id, channel.name));
         }
-        ServerPlayNetworking.send(player, new DiscordConfigSyncPayload(
-                DiscordTransportService.isEnabled(),
-                DiscordTransportService.getWorkerUrl(),
-                "",
-                syncedChannels
-        ));
+        if (ServerPlayNetworking.canSend(player, DiscordConfigSyncPayload.TYPE)) {
+            ServerPlayNetworking.send(player, new DiscordConfigSyncPayload(
+                    DiscordTransportService.isEnabled(), DiscordTransportService.getWorkerUrl(), "", syncedChannels));
+        }
     }
 }
-
-
 

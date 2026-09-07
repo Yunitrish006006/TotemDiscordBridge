@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DiscordLocalizationResourceParityTest {
-    private static final String LANGUAGE_ROOT = "/assets/deadrecall/lang/";
+    private static final String LANGUAGE_ROOT = "/assets/totem/lang/";
     private static final Pattern FORMAT_PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?[a-zA-Z]|%%");
 
     @Test

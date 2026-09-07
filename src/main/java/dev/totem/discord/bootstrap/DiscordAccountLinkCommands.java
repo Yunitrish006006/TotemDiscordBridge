@@ -32,21 +32,21 @@ final class DiscordAccountLinkCommands {
                                                 context.getSource().getPlayerOrException().getGameProfile().name(),
                                                 StringArgumentType.getString(context, "code")
                                         ),
-                                        "discord.deadrecall.account_link.verifying"
+                                        "discord.totem.account_link.verifying"
                                 ))))
                 .then(Commands.literal("status")
                         .executes(context -> start(
                                 context.getSource(),
                                 DiscordAccountLinkService.status(
                                         context.getSource().getPlayerOrException().getUUID()),
-                                "discord.deadrecall.account_link.checking_status"
+                                "discord.totem.account_link.checking_status"
                         )))
                 .then(Commands.literal("unlink")
                         .executes(context -> start(
                                 context.getSource(),
                                 DiscordAccountLinkService.unlink(
                                         context.getSource().getPlayerOrException().getUUID()),
-                                "discord.deadrecall.account_link.unlinking"
+                                "discord.totem.account_link.unlinking"
                         ))));
     }
 
@@ -79,39 +79,39 @@ final class DiscordAccountLinkCommands {
     static Component message(DiscordAccountLinkResult result) {
         return switch (result.status()) {
             case LINKED -> Component.literal(result.discordName().isBlank()
-                            ? DiscordLocalizationService.translate("discord.deadrecall.account_link.linked")
+                            ? DiscordLocalizationService.translate("discord.totem.account_link.linked")
                             : DiscordLocalizationService.format(
-                                    "discord.deadrecall.account_link.linked.named",
+                                    "discord.totem.account_link.linked.named",
                                     result.discordName()
                             ))
                     .withStyle(ChatFormatting.GREEN);
             case UNLINKED -> Component.literal(result.discordName().isBlank()
-                            ? DiscordLocalizationService.translate("discord.deadrecall.account_link.unlinked")
+                            ? DiscordLocalizationService.translate("discord.totem.account_link.unlinked")
                             : DiscordLocalizationService.format(
-                                    "discord.deadrecall.account_link.unlinked.named",
+                                    "discord.totem.account_link.unlinked.named",
                                     result.discordName()
                             ))
                     .withStyle(ChatFormatting.GREEN);
-            case NOT_LINKED -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.not_linked"))
+            case NOT_LINKED -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.not_linked"))
                     .withStyle(ChatFormatting.YELLOW);
-            case INVALID_CODE -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.invalid_code"))
+            case INVALID_CODE -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.invalid_code"))
                     .withStyle(ChatFormatting.RED);
-            case INVALID_REQUEST -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.invalid_request"))
+            case INVALID_REQUEST -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.invalid_request"))
                     .withStyle(ChatFormatting.RED);
-            case MINECRAFT_NAME_MISMATCH -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.name_mismatch"))
+            case MINECRAFT_NAME_MISMATCH -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.name_mismatch"))
                     .withStyle(ChatFormatting.RED);
-            case MINECRAFT_ALREADY_BOUND -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.already_bound"))
+            case MINECRAFT_ALREADY_BOUND -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.already_bound"))
                     .withStyle(ChatFormatting.RED);
             case RATE_LIMITED -> Component.literal(result.retryAfterSeconds() > 0
                             ? DiscordLocalizationService.format(
-                                    "discord.deadrecall.account_link.rate_limited.wait",
+                                    "discord.totem.account_link.rate_limited.wait",
                                     String.valueOf(result.retryAfterSeconds())
                             )
-                            : DiscordLocalizationService.translate("discord.deadrecall.account_link.rate_limited"))
+                            : DiscordLocalizationService.translate("discord.totem.account_link.rate_limited"))
                     .withStyle(ChatFormatting.RED);
-            case BUSY -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.busy"))
+            case BUSY -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.busy"))
                     .withStyle(ChatFormatting.YELLOW);
-            case UNAVAILABLE -> Component.literal(DiscordLocalizationService.translate("discord.deadrecall.account_link.unavailable"))
+            case UNAVAILABLE -> Component.literal(DiscordLocalizationService.translate("discord.totem.account_link.unavailable"))
                     .withStyle(ChatFormatting.RED);
         };
     }

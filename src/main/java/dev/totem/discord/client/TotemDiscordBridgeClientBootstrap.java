@@ -1,7 +1,9 @@
 package dev.totem.discord.client;
 
 import dev.totem.discord.network.DiscordConfigSyncPayload;
+import dev.totem.discord.network.ManageDiscordChannelPayload;
 import dev.totem.discord.network.RequestDiscordConfigPayload;
+import dev.totem.discord.network.SaveDiscordConfigPayload;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -25,7 +27,7 @@ public final class TotemDiscordBridgeClientBootstrap {
 
     public static KeyMapping createKeyMapping(KeyMapping.Category category) {
         openConfigKey = new KeyMapping(
-                "key.deadrecall.discord_config",
+                "key.totem.discord_config",
                 GLFW.GLFW_KEY_UNKNOWN,
                 category
         );
@@ -43,21 +45,7 @@ public final class TotemDiscordBridgeClientBootstrap {
         });
 
         ClientPlayNetworking.registerGlobalReceiver(DiscordConfigSyncPayload.TYPE,
-                (payload, context) -> {
-                    Minecraft mc = context.client();
-                    mc.execute(() -> {
-                        DiscordConfigScreen screen = DiscordConfigScreen.CURRENT;
-                        if (screen == null && pendingConfigOpenTicks > 0) {
-                            screen = new DiscordConfigScreen();
-                            mc.setScreenAndShow(screen);
-                        }
-                        pendingConfigOpenTicks = 0;
-                        if (screen != null) {
-                            screen.applyServerConfig(payload.enabled(), payload.workerUrl(), payload.apiKey());
-                            screen.applyChannels(payload.channels());
-                        }
-                    });
-                });
+                (payload, context) -> applyServerConfig(context.client(), payload.enabled(), payload.workerUrl(), payload.apiKey(), payload.channels()));
     }
 
     public static void registerCommands() {
@@ -70,13 +58,49 @@ public final class TotemDiscordBridgeClientBootstrap {
                         })));
     }
 
+    private static void applyServerConfig(
+            Minecraft mc,
+            boolean enabled,
+            String workerUrl,
+            String apiKey,
+            java.util.List<DiscordConfigSyncPayload.ChannelData> channels
+    ) {
+        mc.execute(() -> {
+            DiscordConfigScreen screen = DiscordConfigScreen.CURRENT;
+            if (screen == null && pendingConfigOpenTicks > 0) {
+                screen = new DiscordConfigScreen();
+                mc.setScreenAndShow(screen);
+            }
+            pendingConfigOpenTicks = 0;
+            if (screen != null) {
+                screen.applyServerConfig(enabled, workerUrl, apiKey);
+                screen.applyChannels(channels);
+            }
+        });
+    }
+
+    public static boolean sendConfigSave(boolean enabled, String workerUrl, String apiKey) {
+        if (ClientPlayNetworking.canSend(SaveDiscordConfigPayload.TYPE)) {
+            ClientPlayNetworking.send(new SaveDiscordConfigPayload(enabled, workerUrl, apiKey));
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean sendChannelManagement(String action, String channelId, String channelName) {
+        if (ClientPlayNetworking.canSend(ManageDiscordChannelPayload.TYPE)) {
+            ClientPlayNetworking.send(new ManageDiscordChannelPayload(action, channelId, channelName));
+            return true;
+        }
+        return false;
+    }
+
     private static void openDiscordConfigUi(Minecraft mc) {
         if (ClientPlayNetworking.canSend(RequestDiscordConfigPayload.TYPE)) {
             pendingConfigOpenTicks = CONFIG_OPEN_TIMEOUT_TICKS;
             ClientPlayNetworking.send(new RequestDiscordConfigPayload());
         } else if (mc.player != null) {
-            mc.player.sendSystemMessage(Component.translatable("message.deadrecall.discord_config.request_failed").withStyle(ChatFormatting.RED));
+            mc.player.sendSystemMessage(Component.translatable("message.totem.discord_config.request_failed").withStyle(ChatFormatting.RED));
         }
     }
 }
-

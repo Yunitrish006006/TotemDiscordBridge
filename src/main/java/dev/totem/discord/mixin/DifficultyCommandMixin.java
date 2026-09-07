@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(DifficultyCommand.class)
 public abstract class DifficultyCommandMixin {
     @Inject(method = "setDifficulty", at = @At("RETURN"))
-    private static void deadrecall$notifyDifficultyChanged(
+    private static void totem$notifyDifficultyChanged(
             CommandSourceStack source,
             Difficulty difficulty,
             CallbackInfoReturnable<Integer> cir

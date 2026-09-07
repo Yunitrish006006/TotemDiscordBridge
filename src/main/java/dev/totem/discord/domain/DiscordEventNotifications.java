@@ -39,7 +39,7 @@ public final class DiscordEventNotifications {
         );
         DiscordEventDispatcher.send(
                 "villager_level_up",
-                DiscordLocalizationService.translate("discord.deadrecall.system"),
+                DiscordLocalizationService.translate("discord.totem.system"),
                 message
         );
     }
@@ -47,7 +47,7 @@ public final class DiscordEventNotifications {
     public static void death(Component deathMessage) {
         DiscordEventDispatcher.send(
                 "player_death",
-                DiscordLocalizationService.translate("discord.deadrecall.death.unknown"),
+                DiscordLocalizationService.translate("discord.totem.death.unknown"),
                 DiscordEventFormatter.deathMessage(deathMessage)
         );
     }
@@ -57,7 +57,7 @@ public final class DiscordEventNotifications {
         DiscordEventDispatcher.send(
                 "boss_defeated",
                 normalizedKiller.isEmpty()
-                        ? DiscordLocalizationService.translate("discord.deadrecall.system")
+                        ? DiscordLocalizationService.translate("discord.totem.system")
                         : normalizedKiller,
                 DiscordEventFormatter.bossDefeatedMessage(bossName, normalizedKiller)
         );
@@ -66,7 +66,7 @@ public final class DiscordEventNotifications {
     public static void raidEnded(String result) {
         DiscordEventDispatcher.send(
                 "raid_ended",
-                DiscordLocalizationService.translate("discord.deadrecall.system"),
+                DiscordLocalizationService.translate("discord.totem.system"),
                 DiscordEventFormatter.raidEndedMessage(result)
         );
     }

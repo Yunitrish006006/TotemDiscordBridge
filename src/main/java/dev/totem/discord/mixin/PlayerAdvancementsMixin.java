@@ -19,7 +19,7 @@ public abstract class PlayerAdvancementsMixin {
     private ServerPlayer player;
 
     @Inject(method = "award", at = @At("RETURN"))
-    private void deadrecall$notifyAdvancementAwarded(
+    private void totem$notifyAdvancementAwarded(
             AdvancementHolder advancement,
             String criterionName,
             CallbackInfoReturnable<Boolean> cir

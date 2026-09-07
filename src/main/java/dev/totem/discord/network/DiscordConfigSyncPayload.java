@@ -15,7 +15,7 @@ public record DiscordConfigSyncPayload(boolean enabled, String workerUrl, String
         implements CustomPacketPayload {
 
     public static final Type<DiscordConfigSyncPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "discord_config_sync"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "discord_config_sync"));
 
     public record ChannelData(String id, String name) {
     }
@@ -54,5 +54,4 @@ public record DiscordConfigSyncPayload(boolean enabled, String workerUrl, String
         return TYPE;
     }
 }
-
 

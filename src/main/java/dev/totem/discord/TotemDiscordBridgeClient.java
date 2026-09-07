@@ -15,7 +15,7 @@ public final class TotemDiscordBridgeClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         KeyMapping.Category category = KeyMapping.Category.register(
-                Identifier.fromNamespaceAndPath("deadrecall", "category"));
+                Identifier.fromNamespaceAndPath("totem", "category"));
         openConfigKey = TotemDiscordBridgeClientBootstrap.createKeyMapping(category);
         TotemDiscordBridgeClientBootstrap.registerRuntime();
         TotemDiscordBridgeClientBootstrap.registerCommands();

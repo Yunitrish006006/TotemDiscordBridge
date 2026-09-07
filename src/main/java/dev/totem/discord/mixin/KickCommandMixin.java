@@ -15,7 +15,7 @@ import java.util.Collection;
 @Mixin(KickCommand.class)
 public abstract class KickCommandMixin {
     @Inject(method = "kickPlayers", at = @At("RETURN"))
-    private static void deadrecall$notifyKickPlayers(
+    private static void totem$notifyKickPlayers(
             CommandSourceStack source,
             Collection<ServerPlayer> targets,
             Component reason,

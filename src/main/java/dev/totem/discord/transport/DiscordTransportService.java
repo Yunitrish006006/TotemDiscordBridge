@@ -407,12 +407,12 @@ public class DiscordTransportService {
                 ? DiscordLocalizationService.translate("entity.minecraft.villager")
                 : villagerName.trim();
         String message = DiscordLocalizationService.format(
-                "discord.deadrecall.villager.level_up",
+                "discord.totem.villager.level_up",
                 name,
                 String.valueOf(oldLevel),
                 String.valueOf(newLevel)
         );
-        sendMinecraftEvent("villager_level_up", DiscordLocalizationService.translate("discord.deadrecall.system"), message);
+        sendMinecraftEvent("villager_level_up", DiscordLocalizationService.translate("discord.totem.system"), message);
     }
 
     /**
@@ -430,7 +430,7 @@ public class DiscordTransportService {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("player_join", name, DiscordLocalizationService.translate("discord.deadrecall.player.joined"));
+        sendMinecraftEvent("player_join", name, DiscordLocalizationService.translate("discord.totem.player.joined"));
     }
 
     /**
@@ -440,7 +440,7 @@ public class DiscordTransportService {
         String name = normalizePlayerName(playerName);
         if (name.isEmpty()) return;
 
-        sendMinecraftEvent("player_leave", name, DiscordLocalizationService.translate("discord.deadrecall.player.left"));
+        sendMinecraftEvent("player_leave", name, DiscordLocalizationService.translate("discord.totem.player.left"));
     }
 
     public static void sendPlayerFirstJoined(String playerName) {
@@ -450,7 +450,7 @@ public class DiscordTransportService {
         sendMinecraftEvent(
                 "player_first_join",
                 name,
-                DiscordLocalizationService.translate("discord.deadrecall.player.first_joined")
+                DiscordLocalizationService.translate("discord.totem.player.first_joined")
         );
     }
 
@@ -461,10 +461,10 @@ public class DiscordTransportService {
 
         String type = normalizeText(advancementType);
         String localizedType = type.isEmpty()
-                ? DiscordLocalizationService.translate("discord.deadrecall.advancement.task")
+                ? DiscordLocalizationService.translate("discord.totem.advancement.task")
                 : type;
         String message = DiscordLocalizationService.format(
-                "discord.deadrecall.advancement.message",
+                "discord.totem.advancement.message",
                 name,
                 localizedType,
                 title
@@ -481,7 +481,7 @@ public class DiscordTransportService {
         sendMinecraftEvent(
                 "admin_action",
                 source,
-                DiscordLocalizationService.format("discord.deadrecall.admin.action", source, normalizedAction, target)
+                DiscordLocalizationService.format("discord.totem.admin.action", source, normalizedAction, target)
         );
     }
 
@@ -491,7 +491,7 @@ public class DiscordTransportService {
 
         sendMinecraftEvent(
                 "server_health_alert",
-                DiscordLocalizationService.translate("discord.deadrecall.system"),
+                DiscordLocalizationService.translate("discord.totem.system"),
                 text
         );
     }
@@ -503,7 +503,7 @@ public class DiscordTransportService {
         sendMinecraftEvent(
                 "death_backpack_created",
                 name,
-                DiscordLocalizationService.format("discord.deadrecall.death_backpack.created", name)
+                DiscordLocalizationService.format("discord.totem.death_backpack.created", name)
         );
     }
 
@@ -514,7 +514,7 @@ public class DiscordTransportService {
         sendMinecraftEvent(
                 "death_backpack_recovered",
                 name,
-                DiscordLocalizationService.format("discord.deadrecall.death_backpack.recovered", name)
+                DiscordLocalizationService.format("discord.totem.death_backpack.recovered", name)
         );
     }
 
@@ -525,7 +525,7 @@ public class DiscordTransportService {
         sendMinecraftEvent(
                 "space_unit_public_update",
                 normalizeActor(actor),
-                DiscordLocalizationService.format("discord.deadrecall.space_unit.public_update", text)
+                DiscordLocalizationService.format("discord.totem.space_unit.public_update", text)
         );
     }
 
@@ -537,14 +537,14 @@ public class DiscordTransportService {
         String message;
         if (event.lockRemoved()) {
             message = DiscordLocalizationService.format(
-                    "discord.deadrecall.locked_network.broken.last",
+                    "discord.totem.locked_network.broken.last",
                     actor,
                     owner,
                     location
             );
         } else {
             message = DiscordLocalizationService.format(
-                    "discord.deadrecall.locked_network.broken.member",
+                    "discord.totem.locked_network.broken.member",
                     actor,
                     owner,
                     localizedLockedMemberKind(event.brokenMemberKind()),
@@ -558,11 +558,11 @@ public class DiscordTransportService {
 
     private static String localizedLockedMemberKind(String kind) {
         return switch (normalizeText(kind)) {
-            case "chest" -> DiscordLocalizationService.translate("discord.deadrecall.container.chest");
-            case "trapped_chest" -> DiscordLocalizationService.translate("discord.deadrecall.container.trapped_chest");
-            case "barrel" -> DiscordLocalizationService.translate("discord.deadrecall.container.barrel");
-            case "hopper" -> DiscordLocalizationService.translate("discord.deadrecall.container.hopper");
-            default -> DiscordLocalizationService.translate("discord.deadrecall.container.generic");
+            case "chest" -> DiscordLocalizationService.translate("discord.totem.container.chest");
+            case "trapped_chest" -> DiscordLocalizationService.translate("discord.totem.container.trapped_chest");
+            case "barrel" -> DiscordLocalizationService.translate("discord.totem.container.barrel");
+            case "hopper" -> DiscordLocalizationService.translate("discord.totem.container.hopper");
+            default -> DiscordLocalizationService.translate("discord.totem.container.generic");
         };
     }
 
@@ -578,11 +578,11 @@ public class DiscordTransportService {
     public static void sendRaidStarted(String playerName) {
         String name = normalizePlayerName(playerName);
         String message = name.isEmpty()
-                ? DiscordLocalizationService.translate("discord.deadrecall.raid.started")
-                : DiscordLocalizationService.format("discord.deadrecall.raid.started.by", name);
+                ? DiscordLocalizationService.translate("discord.totem.raid.started")
+                : DiscordLocalizationService.format("discord.totem.raid.started.by", name);
         sendMinecraftEvent(
                 "raid_started",
-                name.isEmpty() ? DiscordLocalizationService.translate("discord.deadrecall.system") : name,
+                name.isEmpty() ? DiscordLocalizationService.translate("discord.totem.system") : name,
                 message
         );
     }
@@ -622,7 +622,7 @@ public class DiscordTransportService {
                 "gamerule_changed",
                 source,
                 DiscordLocalizationService.format(
-                        "discord.deadrecall.gamerule.changed",
+                        "discord.totem.gamerule.changed",
                         source,
                         normalizedRule,
                         normalizedValue
@@ -715,7 +715,7 @@ public class DiscordTransportService {
 
     private static String normalizeActor(String actor) {
         String normalized = normalizeText(actor);
-        return normalized.isEmpty() ? DiscordLocalizationService.translate("discord.deadrecall.server") : normalized;
+        return normalized.isEmpty() ? DiscordLocalizationService.translate("discord.totem.server") : normalized;
     }
 
     private static void recordDeliverySuccess() {
@@ -732,7 +732,7 @@ public class DiscordTransportService {
             deliveryFailureAlertReported = true;
             LOGGER.warn("[DiscordTransportService] 連續 {} 次傳送失敗", consecutiveDeliveryFailures);
             sendServerHealthAlert(DiscordLocalizationService.format(
-                    "discord.deadrecall.health.delivery_failures",
+                    "discord.totem.health.delivery_failures",
                     String.valueOf(consecutiveDeliveryFailures)
             ));
         }

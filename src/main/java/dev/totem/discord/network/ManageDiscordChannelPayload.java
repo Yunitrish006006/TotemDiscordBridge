@@ -12,7 +12,7 @@ public record ManageDiscordChannelPayload(String action, String channelId, Strin
         implements CustomPacketPayload {
 
     public static final Type<ManageDiscordChannelPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "manage_discord_channel"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "manage_discord_channel"));
 
     public static final StreamCodec<FriendlyByteBuf, ManageDiscordChannelPayload> CODEC =
             StreamCodec.of(
@@ -33,5 +33,4 @@ public record ManageDiscordChannelPayload(String action, String channelId, Strin
         return TYPE;
     }
 }
-
 

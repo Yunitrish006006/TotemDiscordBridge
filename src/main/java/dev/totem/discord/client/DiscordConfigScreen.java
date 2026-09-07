@@ -1,8 +1,6 @@
 package dev.totem.discord.client;
 
 import dev.totem.discord.network.DiscordConfigSyncPayload;
-import dev.totem.discord.network.SaveDiscordConfigPayload;
-import dev.totem.discord.network.ManageDiscordChannelPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -10,7 +8,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +27,7 @@ public class DiscordConfigScreen extends Screen {
     private static final int CONTENT_TOP_PADDING = 20;
     private static final int CONTENT_BOTTOM_PADDING = 24;
     private static final int MAX_DISCORD_CHANNELS = 10;
-    private static final String TRANSLATION_PREFIX = "message.deadrecall.discord_config.";
+    private static final String TRANSLATION_PREFIX = "message.totem.discord_config.";
 
     private EditBox workerUrlField;
     private EditBox apiKeyField;
@@ -303,7 +300,7 @@ public class DiscordConfigScreen extends Screen {
         }
 
         // 發送到伺服器
-        ClientPlayNetworking.send(new ManageDiscordChannelPayload("add", channelId, channelName));
+        TotemDiscordBridgeClientBootstrap.sendChannelManagement("add", channelId, channelName);
         this.channelIdField.setValue("");
         this.channelNameField.setValue("");
     }
@@ -400,7 +397,7 @@ public class DiscordConfigScreen extends Screen {
         }
         String workerUrl = this.workerUrlField.getValue().trim();
         String apiKey = this.apiKeyField.getValue().trim();
-        ClientPlayNetworking.send(new SaveDiscordConfigPayload(this.enabled, workerUrl, apiKey));
+        TotemDiscordBridgeClientBootstrap.sendConfigSave(this.enabled, workerUrl, apiKey);
         this.onClose();
     }
 
@@ -410,7 +407,7 @@ public class DiscordConfigScreen extends Screen {
         }
 
         DiscordConfigSyncPayload.ChannelData channel = this.channels.get(index);
-        ClientPlayNetworking.send(new ManageDiscordChannelPayload("remove", channel.id(), ""));
+        TotemDiscordBridgeClientBootstrap.sendChannelManagement("remove", channel.id(), "");
     }
 
     private static boolean isValidChannelId(String channelId) {
@@ -425,4 +422,3 @@ public class DiscordConfigScreen extends Screen {
         return true;
     }
 }
-

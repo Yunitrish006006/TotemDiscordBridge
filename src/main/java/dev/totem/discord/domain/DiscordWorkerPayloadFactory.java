@@ -57,11 +57,11 @@ public final class DiscordWorkerPayloadFactory {
                 "activity_name",
                 serverOnline
                         ? DiscordLocalizationService.format(
-                                "discord.deadrecall.presence.players",
+                                "discord.totem.presence.players",
                                 String.valueOf(playersOnline),
                                 String.valueOf(playersMax)
                         )
-                        : DiscordLocalizationService.translate("discord.deadrecall.presence.offline")
+                        : DiscordLocalizationService.translate("discord.totem.presence.offline")
         );
         // Discord activity type 0 = Playing. The module owns this presentation decision.
         presence.addProperty("activity_type", 0);

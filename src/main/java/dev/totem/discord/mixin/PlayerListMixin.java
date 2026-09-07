@@ -14,7 +14,7 @@ import java.util.Optional;
 @Mixin(PlayerList.class)
 public abstract class PlayerListMixin {
     @Inject(method = "op(Lnet/minecraft/server/players/NameAndId;Ljava/util/Optional;Ljava/util/Optional;)V", at = @At("RETURN"))
-    private void deadrecall$notifyOp(
+    private void totem$notifyOp(
             NameAndId profile,
             Optional<LevelBasedPermissionSet> permissionLevel,
             Optional<Boolean> bypassPlayerLimit,
@@ -24,7 +24,7 @@ public abstract class PlayerListMixin {
     }
 
     @Inject(method = "deop", at = @At("RETURN"))
-    private void deadrecall$notifyDeop(NameAndId profile, CallbackInfo ci) {
+    private void totem$notifyDeop(NameAndId profile, CallbackInfo ci) {
         DiscordTransportService.sendAdminAction("server", "deop", profile.name());
     }
 }

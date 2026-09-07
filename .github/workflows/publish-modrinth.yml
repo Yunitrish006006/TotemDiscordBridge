@@ -10,8 +10,8 @@ permissions: {contents: write}
 concurrency: {group: 'modrinth-${{ github.workflow }}-${{ github.ref }}', cancel-in-progress: false}
 env:
   MODULE_ID: totem-discord-bridge
-  CORE_VERSION: 0.7.16
-  CORE_REF: b0b57bc98a98140a1c12a660a33952ea61167278
+  CORE_VERSION: 0.7.18
+  CORE_REF: f87cd10fe8aefce77925b9e75dad237f17f38966
 jobs:
   publish:
     runs-on: ubuntu-latest

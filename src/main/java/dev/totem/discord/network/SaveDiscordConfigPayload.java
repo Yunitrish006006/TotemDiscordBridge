@@ -13,7 +13,7 @@ public record SaveDiscordConfigPayload(boolean enabled, String workerUrl, String
         implements CustomPacketPayload {
 
     public static final Type<SaveDiscordConfigPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "save_discord_config"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "save_discord_config"));
 
     public static final StreamCodec<FriendlyByteBuf, SaveDiscordConfigPayload> CODEC =
             StreamCodec.of(
@@ -34,5 +34,4 @@ public record SaveDiscordConfigPayload(boolean enabled, String workerUrl, String
         return TYPE;
     }
 }
-
 

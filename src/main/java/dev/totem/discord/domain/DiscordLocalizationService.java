@@ -37,14 +37,14 @@ import java.util.regex.Pattern;
 
 public final class DiscordLocalizationService {
     private static final List<String> BUNDLED_TABLES = List.of(
-            "/assets/deadrecall/lang/discord_en_us/system.json",
-            "/assets/deadrecall/lang/discord_es_es/system.json",
-            "/assets/deadrecall/lang/discord_zh_tw/system.json"
+            "/assets/totem/lang/discord_en_us/system.json",
+            "/assets/totem/lang/discord_es_es/system.json",
+            "/assets/totem/lang/discord_zh_tw/system.json"
     );
-    private static final String SERVER_DATA_DIRECTORY = "deadrecall/discord_zh_tw";
+    private static final String SERVER_DATA_DIRECTORY = "totem/discord_zh_tw";
     private static final List<String> MOD_LANGUAGE_PREFERENCE = List.of("en_us", "es_es", "zh_tw");
     private static final Identifier RELOAD_LISTENER_ID =
-            Identifier.fromNamespaceAndPath("deadrecall", "discord_zh_tw");
+            Identifier.fromNamespaceAndPath("totem", "discord_zh_tw");
     private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s|%%");
     private static final Map<String, String> BUNDLED_TRANSLATIONS = loadBundledTranslations();
     private static volatile Map<String, String> translations = BUNDLED_TRANSLATIONS;
@@ -125,7 +125,7 @@ public final class DiscordLocalizationService {
         } catch (RuntimeException exception) {
             LOGGER.warn("[DiscordBridge] 無法解析 Discord 進度標題", exception);
             return idFallback.isEmpty()
-                    ? translate("discord.deadrecall.advancement.unknown")
+                    ? translate("discord.totem.advancement.unknown")
                     : idFallback;
         }
     }
@@ -294,24 +294,8 @@ public final class DiscordLocalizationService {
         Map<String, String> overrides = new LinkedHashMap<>();
         int overrideCount = 0;
         try {
-            Map<Identifier, Resource> resources = resourceManager.listResources(
-                    SERVER_DATA_DIRECTORY,
-                    id -> "deadrecall".equals(id.getNamespace()) && id.getPath().endsWith(".json")
-            );
-            List<Map.Entry<Identifier, Resource>> orderedResources = new ArrayList<>(resources.entrySet());
-            orderedResources.sort(Comparator.comparing(entry -> entry.getKey().toString()));
-
-            for (Map.Entry<Identifier, Resource> entry : orderedResources) {
-                try (Reader reader = entry.getValue().openAsReader()) {
-                    overrideCount += mergeTranslationTable(reader, overrides);
-                } catch (Exception exception) {
-                    LOGGER.warn(
-                            "[DiscordBridge] 無法載入 zh_tw data resource {}",
-                            entry.getKey(),
-                            exception
-                    );
-                }
-            }
+            overrideCount += mergeServerDataResources(
+                    resourceManager, SERVER_DATA_DIRECTORY, "totem", overrides);
         } catch (RuntimeException exception) {
             LOGGER.warn("[DiscordBridge] 無法列舉 zh_tw data resources，保留目前 snapshot", exception);
             return;
@@ -324,6 +308,29 @@ public final class DiscordLocalizationService {
                 translations.size(),
                 overrideCount
         );
+    }
+
+    private static int mergeServerDataResources(
+            ResourceManager resourceManager,
+            String directory,
+            String namespace,
+            Map<String, String> overrides
+    ) {
+        Map<Identifier, Resource> resources = resourceManager.listResources(
+                directory,
+                id -> namespace.equals(id.getNamespace()) && id.getPath().endsWith(".json")
+        );
+        List<Map.Entry<Identifier, Resource>> orderedResources = new ArrayList<>(resources.entrySet());
+        orderedResources.sort(Comparator.comparing(entry -> entry.getKey().toString()));
+        int merged = 0;
+        for (Map.Entry<Identifier, Resource> entry : orderedResources) {
+            try (Reader reader = entry.getValue().openAsReader()) {
+                merged += mergeTranslationTable(reader, overrides);
+            } catch (Exception exception) {
+                LOGGER.warn("[DiscordBridge] 無法載入 zh_tw data resource {}", entry.getKey(), exception);
+            }
+        }
+        return merged;
     }
 
     private static Map<String, String> loadBundledTranslations() {
@@ -434,24 +441,7 @@ public final class DiscordLocalizationService {
     }
 
     private static int mergeTranslationTable(Reader reader, Map<String, String> output) {
-        JsonElement parsed = JsonParser.parseReader(reader);
-        if (!parsed.isJsonObject()) {
-            throw new JsonParseException("translation table must be a JSON object");
-        }
-
-        int loaded = 0;
-        JsonObject table = parsed.getAsJsonObject();
-        for (Map.Entry<String, JsonElement> entry : table.entrySet()) {
-            JsonElement value = entry.getValue();
-            if (entry.getKey().isBlank()
-                    || !value.isJsonPrimitive()
-                    || !value.getAsJsonPrimitive().isString()) {
-                continue;
-            }
-            output.put(entry.getKey(), value.getAsString());
-            loaded++;
-        }
-        return loaded;
+        return mergeTranslationTable(reader, output, false);
     }
 
     private static void publishSnapshot(Map<String, String> candidate) {

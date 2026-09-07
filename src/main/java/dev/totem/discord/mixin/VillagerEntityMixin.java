@@ -13,21 +13,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class VillagerEntityMixin {
 
     @Unique
-    private int deadrecall$previousVillagerLevel = -1;
+    private int totem$previousVillagerLevel = -1;
 
     @Inject(method = "increaseMerchantCareer", at = @At("HEAD"))
-    private void deadrecall$captureVillagerLevel(ServerLevel world, CallbackInfo ci) {
+    private void totem$captureVillagerLevel(ServerLevel world, CallbackInfo ci) {
         Villager self = (Villager) (Object) this;
-        this.deadrecall$previousVillagerLevel = self.getVillagerData().level();
+        this.totem$previousVillagerLevel = self.getVillagerData().level();
     }
 
     @Inject(method = "increaseMerchantCareer", at = @At("TAIL"))
-    private void deadrecall$notifyVillagerLevelUp(ServerLevel world, CallbackInfo ci) {
+    private void totem$notifyVillagerLevelUp(ServerLevel world, CallbackInfo ci) {
         Villager self = (Villager) (Object) this;
-        int previousLevel = this.deadrecall$previousVillagerLevel;
+        int previousLevel = this.totem$previousVillagerLevel;
         int currentLevel = self.getVillagerData().level();
 
-        this.deadrecall$previousVillagerLevel = -1;
+        this.totem$previousVillagerLevel = -1;
 
         if (previousLevel >= 0 && currentLevel > previousLevel) {
             String customName = self.hasCustomName() && self.getCustomName() != null

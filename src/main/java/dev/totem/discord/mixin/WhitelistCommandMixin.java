@@ -14,7 +14,7 @@ import java.util.Collection;
 @Mixin(WhitelistCommand.class)
 public abstract class WhitelistCommandMixin {
     @Inject(method = "addPlayers", at = @At("RETURN"))
-    private static void deadrecall$notifyWhitelistAdd(
+    private static void totem$notifyWhitelistAdd(
             CommandSourceStack source,
             Collection<NameAndId> targets,
             CallbackInfoReturnable<Integer> cir
@@ -25,7 +25,7 @@ public abstract class WhitelistCommandMixin {
     }
 
     @Inject(method = "removePlayers", at = @At("RETURN"))
-    private static void deadrecall$notifyWhitelistRemove(
+    private static void totem$notifyWhitelistRemove(
             CommandSourceStack source,
             Collection<NameAndId> targets,
             CallbackInfoReturnable<Integer> cir
@@ -36,7 +36,7 @@ public abstract class WhitelistCommandMixin {
     }
 
     @Inject(method = "enableWhitelist", at = @At("RETURN"))
-    private static void deadrecall$notifyWhitelistEnabled(
+    private static void totem$notifyWhitelistEnabled(
             CommandSourceStack source,
             CallbackInfoReturnable<Integer> cir
     ) {
@@ -46,7 +46,7 @@ public abstract class WhitelistCommandMixin {
     }
 
     @Inject(method = "disableWhitelist", at = @At("RETURN"))
-    private static void deadrecall$notifyWhitelistDisabled(
+    private static void totem$notifyWhitelistDisabled(
             CommandSourceStack source,
             CallbackInfoReturnable<Integer> cir
     ) {

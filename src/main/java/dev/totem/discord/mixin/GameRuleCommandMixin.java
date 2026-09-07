@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(GameRuleCommand.class)
 public abstract class GameRuleCommandMixin {
     @Inject(method = "setRule", at = @At("RETURN"))
-    private static <T> void deadrecall$notifyGameRuleChanged(
+    private static <T> void totem$notifyGameRuleChanged(
             CommandContext<CommandSourceStack> context,
             GameRule<T> rule,
             CallbackInfoReturnable<Integer> cir

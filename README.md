@@ -28,8 +28,8 @@ Server 放入：
 | Java | 25+ |
 | 必要 Totem 模組 | `totem-core >=0.7.0 <0.8.0` |
 
-Bridge 不要求 Remnant、Automata、Nexus 或 Locksmith。使用 DeadRecall 2.4.11 整合
-JAR 時不要再安裝獨立 TotemDiscordBridge。
+Bridge 不要求 Remnant、Automata、Nexus 或 Locksmith。舊整合 JAR 不應再與
+獨立 TotemDiscordBridge 並用。
 
 ## 第一次設定
 
@@ -113,8 +113,7 @@ Bridge 模組決定並送出完整的 `discord_presence` 指令；Worker 只驗�
 `伺服器離線`。玩家加入或離開會在該 Server tick 結束後更新一次，並使用
 `POST /api/mc/presence`，不會因此在 Discord 頻道多送狀態訊息。
 
-DeadRecall repository 提供完整的
-[Cloudflare Worker 部署說明](https://github.com/Yunitrish006006/DeadRecall/blob/master/docs/discord/worker.md)。
+請依本模組隨附的 Worker 設定與部署文件設定 Cloudflare Worker。
 
 ## 遊戲內設定
 
@@ -151,7 +150,7 @@ DeadRecall repository 提供完整的
   管理稽核事件。
 
 Bridge 啟動時會自行註冊 subscriber；各功能模組不存在或沒有發布事件時，
-對應通知會安全停用，不需要 DeadRecall 額外接線。
+對應通知會安全停用，不需要額外接線。
 
 進度翻譯會先讀取所有已載入模組的 `en_us`，再載入 `es_es`，最後以
 `zh_tw` 覆寫，因此 Discord 輸出固定以繁中為最高優先，英文仍是完整的

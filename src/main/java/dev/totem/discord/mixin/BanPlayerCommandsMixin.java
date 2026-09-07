@@ -15,7 +15,7 @@ import java.util.Collection;
 @Mixin(BanPlayerCommands.class)
 public abstract class BanPlayerCommandsMixin {
     @Inject(method = "banPlayers", at = @At("RETURN"))
-    private static void deadrecall$notifyBanPlayers(
+    private static void totem$notifyBanPlayers(
             CommandSourceStack source,
             Collection<NameAndId> targets,
             Component reason,

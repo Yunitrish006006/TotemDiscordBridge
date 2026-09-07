@@ -11,7 +11,7 @@ import net.minecraft.resources.Identifier;
 public record RequestDiscordConfigPayload() implements CustomPacketPayload {
 
     public static final Type<RequestDiscordConfigPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "request_discord_config"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "request_discord_config"));
 
     public static final StreamCodec<FriendlyByteBuf, RequestDiscordConfigPayload> CODEC =
             StreamCodec.of(
@@ -24,5 +24,4 @@ public record RequestDiscordConfigPayload() implements CustomPacketPayload {
         return TYPE;
     }
 }
-
 

@@ -14,16 +14,16 @@ import java.util.OptionalInt;
 @Mixin(Raid.class)
 public abstract class RaidMixin {
     @Unique
-    private boolean deadrecall$endedNotified = false;
+    private boolean totem$endedNotified = false;
 
     @Inject(method = "tick", at = @At("TAIL"))
-    private void deadrecall$notifyRaidEnded(ServerLevel level, CallbackInfo ci) {
+    private void totem$notifyRaidEnded(ServerLevel level, CallbackInfo ci) {
         Raid raid = (Raid) (Object) this;
-        if (deadrecall$endedNotified || !raid.isOver()) {
+        if (totem$endedNotified || !raid.isOver()) {
             return;
         }
 
-        deadrecall$endedNotified = true;
+        totem$endedNotified = true;
         OptionalInt id = level.getRaids().getId(raid);
         String raidKey = level.dimension().identifier() + ":" + id.orElse(System.identityHashCode(raid));
         DiscordTransportService.sendRaidEnded(raidKey, raidResult(raid));

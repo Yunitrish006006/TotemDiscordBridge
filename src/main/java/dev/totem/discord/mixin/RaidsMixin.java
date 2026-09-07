@@ -15,7 +15,7 @@ import java.util.OptionalInt;
 @Mixin(Raids.class)
 public abstract class RaidsMixin {
     @Inject(method = "createOrExtendRaid", at = @At("RETURN"))
-    private void deadrecall$notifyRaidStarted(
+    private void totem$notifyRaidStarted(
             ServerPlayer player,
             BlockPos pos,
             CallbackInfoReturnable<Raid> cir

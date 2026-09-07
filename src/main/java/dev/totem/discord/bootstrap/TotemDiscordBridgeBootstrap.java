@@ -107,7 +107,7 @@ public final class TotemDiscordBridgeBootstrap {
         var root = Commands.literal("discordbridge").requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_ADMIN));
         root.then(Commands.literal("reload").executes(context -> {
                     DiscordTransportService.reload();
-                    context.getSource().sendSuccess(() -> Component.translatable("message.deadrecall.discord_config.reloaded").withStyle(ChatFormatting.GREEN), true);
+                    context.getSource().sendSuccess(() -> Component.translatable("message.totem.discord_config.reloaded").withStyle(ChatFormatting.GREEN), true);
                     return 1;
                 }));
         root.then(Commands.literal("set").then(Commands.argument("enabled", BoolArgumentType.bool())
@@ -125,29 +125,29 @@ public final class TotemDiscordBridgeBootstrap {
     private static int updateConfig(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
         try {
             DiscordTransportService.updateConfig(BoolArgumentType.getBool(context, "enabled"), StringArgumentType.getString(context, "workerUrl"), StringArgumentType.getString(context, "apiKey"));
-            context.getSource().sendSuccess(() -> Component.translatable("message.deadrecall.discord_config.settings_updated").withStyle(ChatFormatting.GREEN), true);
+            context.getSource().sendSuccess(() -> Component.translatable("message.totem.discord_config.settings_updated").withStyle(ChatFormatting.GREEN), true);
             return 1;
-        } catch (Exception exception) { return commandFailure(context, "message.deadrecall.discord_config.update_failed", exception); }
+        } catch (Exception exception) { return commandFailure(context, "message.totem.discord_config.update_failed", exception); }
     }
 
     private static int addChannel(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
         try {
             String name = StringArgumentType.getString(context, "channelName");
             DiscordTransportService.addChannel(StringArgumentType.getString(context, "channelId"), name);
-            context.getSource().sendSuccess(() -> Component.translatable("message.deadrecall.discord_config.channel_added", name).withStyle(ChatFormatting.GREEN), true);
+            context.getSource().sendSuccess(() -> Component.translatable("message.totem.discord_config.channel_added", name).withStyle(ChatFormatting.GREEN), true);
             return 1;
-        } catch (Exception exception) { return commandFailure(context, "message.deadrecall.discord_config.channel_add_failed", exception); }
+        } catch (Exception exception) { return commandFailure(context, "message.totem.discord_config.channel_add_failed", exception); }
     }
 
     private static int removeChannel(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
         String id = StringArgumentType.getString(context, "channelId");
-        try { DiscordTransportService.removeChannel(id); context.getSource().sendSuccess(() -> Component.translatable("message.deadrecall.discord_config.channel_removed", id).withStyle(ChatFormatting.GREEN), true); return 1;
-        } catch (Exception exception) { return commandFailure(context, "message.deadrecall.discord_config.channel_remove_failed", exception); }
+        try { DiscordTransportService.removeChannel(id); context.getSource().sendSuccess(() -> Component.translatable("message.totem.discord_config.channel_removed", id).withStyle(ChatFormatting.GREEN), true); return 1;
+        } catch (Exception exception) { return commandFailure(context, "message.totem.discord_config.channel_remove_failed", exception); }
     }
 
     private static int listChannels(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
         var channels = DiscordTransportService.getChannels();
-        if (channels.isEmpty()) context.getSource().sendSuccess(() -> Component.translatable("message.deadrecall.discord_config.no_channels_configured").withStyle(ChatFormatting.RED), true);
+        if (channels.isEmpty()) context.getSource().sendSuccess(() -> Component.translatable("message.totem.discord_config.no_channels_configured").withStyle(ChatFormatting.RED), true);
         else for (var channel : channels) context.getSource().sendSuccess(() -> Component.literal("  - " + channel.name + " (" + channel.id + ")"), false);
         return 1;
     }
@@ -162,7 +162,7 @@ public final class TotemDiscordBridgeBootstrap {
                 || (!serverOnline && statusOpenServer != server)) return;
         statusOpenServer = serverOnline ? server : null;
         String status = DiscordLocalizationService.translate(
-                serverOnline ? "discord.deadrecall.server.started" : "discord.deadrecall.server.stopped"
+                serverOnline ? "discord.totem.server.started" : "discord.totem.server.stopped"
         );
         if (immediate) DiscordTransportService.sendServerStatusImmediately(status, serverOnline, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
         else DiscordTransportService.sendServerStatus(status, serverOnline, server.getPlayerList().getPlayerCount(), server.getPlayerList().getMaxPlayers(), server.getServerVersion(), tps);
@@ -186,14 +186,14 @@ public final class TotemDiscordBridgeBootstrap {
         if (tps < LOW_TPS_THRESHOLD && ++lowTpsSamples >= LOW_TPS_REQUIRED_SAMPLES && !lowTpsAlertActive) {
             lowTpsAlertActive = true;
             DiscordTransportService.sendServerHealthAlert(DiscordLocalizationService.format(
-                    "discord.deadrecall.health.low_tps",
+                    "discord.totem.health.low_tps",
                     String.format(Locale.ROOT, "%.1f", tps)
             ));
         } else if (tps >= RECOVERED_TPS_THRESHOLD && lowTpsAlertActive) {
             lowTpsSamples = 0;
             lowTpsAlertActive = false;
             DiscordTransportService.sendServerHealthAlert(DiscordLocalizationService.format(
-                    "discord.deadrecall.health.tps_recovered",
+                    "discord.totem.health.tps_recovered",
                     String.format(Locale.ROOT, "%.1f", tps)
             ));
         }
