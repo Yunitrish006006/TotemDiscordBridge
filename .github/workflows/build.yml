@@ -63,7 +63,7 @@ jobs:
           test -f "${jar_file}"
           unzip -p "${jar_file}" fabric.mod.json | grep -F 'dev.totem.discord.TotemDiscordBridge'
           unzip -p "${jar_file}" fabric.mod.json | grep -F 'dev.totem.discord.TotemDiscordBridgeClient'
-          unzip -p "${jar_file}" fabric.mod.json | grep -F '"totem-core": ">=0.7.0 <0.8.0"'
+          unzip -p "${jar_file}" fabric.mod.json | grep -F '"totem-core": ">=0.7.22 <0.8.0"'
           jar tf "${jar_file}" | grep -F 'dev/totem/discord/domain/DiscordWorkerPayloadFactory.class'
           jar tf "${jar_file}" | grep -F 'dev/totem/discord/integration/BoundedEventIdDeduplicator.class'
           ! jar tf "${jar_file}" | grep -q 'dev/totem/discord/domain/DiscordTransientBridge.class'
