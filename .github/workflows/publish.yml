@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Yunitrish006006/TotemCore
-          ref: f87cd10fe8aefce77925b9e75dad237f17f38966
+          ref: 58deabdd4a81bc751679876f202a3fa062729c58
           path: .lockstep/TotemCore
           persist-credentials: false
 
@@ -38,9 +38,9 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x .lockstep/TotemCore/gradlew gradlew
-          test "$(git -C .lockstep/TotemCore rev-parse HEAD)" = 'f87cd10fe8aefce77925b9e75dad237f17f38966'
+          test "$(git -C .lockstep/TotemCore rev-parse HEAD)" = '58deabdd4a81bc751679876f202a3fa062729c58'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore jar --no-daemon --stacktrace
-          test "$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)" = '0.7.18'
+          test "$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)" = '0.7.22'
 
       - name: Publish package
         shell: bash

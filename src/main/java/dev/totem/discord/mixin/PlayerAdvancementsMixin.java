@@ -36,12 +36,12 @@ public abstract class PlayerAdvancementsMixin {
         }
 
         advancement.value().display()
-                .filter(DisplayInfo::shouldAnnounceChat)
+                .filter(DisplayInfo::announceToChat)
                 .ifPresent(display -> DiscordEventNotifications.advancement(
                         player.getName().getString(),
                         advancement.id().toString(),
-                        display.getTitle(),
-                        display.getType().getSerializedName()
+                        display.title(),
+                        display.type().getSerializedName()
                 ));
     }
 }

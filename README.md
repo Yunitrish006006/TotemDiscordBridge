@@ -8,13 +8,13 @@ TotemDiscordBridge 將 Minecraft 聊天、玩家動態、管理稽核、公開�
 Minecraft Server → TotemDiscordBridge → Worker → Discord
 ```
 
-目前候選版本為 **0.1.11**，需要 TotemCore **0.7.x**。
+目前候選版本為 **0.1.14**，需要 TotemCore **0.7.x**。
 
 ## 安裝
 
 Server 放入：
 
-1. Fabric API `0.154.2+26.2`
+1. Fabric API `0.160.5+26.3`
 2. TotemCore `0.7.x`
 3. TotemDiscordBridge `0.1.11`
 
@@ -23,8 +23,8 @@ Server 放入：
 
 | 項目 | 需求 |
 | --- | --- |
-| Minecraft | 26.2 |
-| Fabric Loader | 0.19.3+ |
+| Minecraft | 26.3 |
+| Fabric Loader | 0.19.5+ |
 | Java | 25+ |
 | 必要 Totem 模組 | `totem-core >=0.7.0 <0.8.0` |
 

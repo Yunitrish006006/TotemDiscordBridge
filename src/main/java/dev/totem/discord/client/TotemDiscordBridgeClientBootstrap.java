@@ -12,7 +12,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 /**
  * Owns client registration for the future TotemDiscordBridge module.
@@ -28,7 +28,7 @@ public final class TotemDiscordBridgeClientBootstrap {
     public static KeyMapping createKeyMapping(KeyMapping.Category category) {
         openConfigKey = new KeyMapping(
                 "key.totem.discord_config",
-                GLFW.GLFW_KEY_UNKNOWN,
+                InputConstants.UNKNOWN.getValue(),
                 category
         );
         return openConfigKey;
