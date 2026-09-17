@@ -3,7 +3,7 @@
   "java": 25,
   "minecraft": "26.3",
   "artifact": "totem-discord-bridge-0.1.15.jar",
-  "sha512": "ea6cf18c3c911e4e186f927aa515a8f0d3c0f233c8446fb3b7136973a0a1b19178135b087705f603d51efcd73d696a484f68eb0d7c01abadbbfa096f97c8e1b8",
+  "sha512": "dbeec7f4643aadaf2c3c1a94a21290422e81f04e1a86b8f860769c63c50422848d0dbbaaa108184a8de0c90e47bd36164a42fc02d1c351c1e8d25495178bd4af",
   "core_version": "0.7.23",
   "core_source_commit": "424b90dc3929caa8c1afcfca7e63c50a64bde669",
   "core_artifact_sha512": "c3d2f88252ee23500d91f7d49a742f47ae981f25acf1e3cdfcf76c81aa36319943ea92f7aa0a7caf1685d89cb765a1e83ac6a0ee1f1af00cec9ea071cdbe923d",
